@@ -1,3 +1,5 @@
+const SUPABASE_URL = "https://xzwwceoexdnarlcxbqbh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_j5BXr-16DXeukNiSK9SKhA_Fm0v8UdL";
 const STATIONS = {
   "primary": {
     "title": "Primary",
