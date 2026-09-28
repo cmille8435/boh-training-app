@@ -53,7 +53,7 @@ function progressView(){
  let blocks=[];
  for (const [k,v] of Object.entries(STATIONS)){let [n,t,p]=pctFor('station',k,v);blocks.push(prog(v.title,n,t,p));}
  for (const [k,v] of Object.entries(CLOSING)){let [n,t,p]=pctFor('closing',k,v);blocks.push(prog(v.title,n,t,p));}
- app.innerHTML=`<h1>My Progress</h1><p class="sub">${trainee?`Team member: <b>${trainee}</b>`:'Progress is saved on this device.'}</p>${blocks.join('')}`;
+ app.innerHTML=`<h1>My Progress</h1><p>Team member: <b>${trainee || 'Not selected'}</b></p>${blocks.join('')}`;
 }
 
 function prog(title,n,t,p){return `<div class="card"><h2>${title}</h2><div class="progressbar"><span style="width:${p}%"></span></div><div class="small">${n} of ${t} complete · ${p}%</div></div>`;}
