@@ -65,7 +65,7 @@ function trainer(){
  <button onclick="closingMenu()">Closing</button><button onclick="progressView()">View Progress</button></div>
  <p class="note"><b>Prototype note:</b> progress currently saves only on this phone/browser. Shared progress across multiple trainers will require a connected database in the next version.</p>`;
 }
-function setTrainee(v){trainee=v;localStorage.setItem('boh-trainee',v);clearTimeout(setTrainee.t);setTrainee.t=setTimeout(async()=>{if(!trainee){progress={};localStorage.setItem(key,'{}');return;}const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=progress&limit=1`,{headers:h});const rows=await r.json();progress=rows.length&&rows[0].progress?rows[0].progress:{};localStorage.setItem(key,JSON.stringify(progress));},500);}
+function setTrainee(v){trainee=v;localStorage.setItem('boh-trainee',v);progress={};localStorage.setItem(key,'{}');clearTimeout(setTrainee.t);setTrainee.t=setTimeout(async()=>{if(!trainee)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=progress&limit=1`,{headers:h});const rows=await r.json();progress=rows.length&&rows[0].progress?rows[0].progress:{};localStorage.setItem(key,JSON.stringify(progress));},500);}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>({learn:home,progress:progressView,trainer}[b.dataset.nav])());
 document.getElementById('homeBtn').onclick=home;
 home();
