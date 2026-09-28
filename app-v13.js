@@ -3,7 +3,7 @@ const key='boh-training-progress-v1';
 let progress=JSON.parse(localStorage.getItem(key)||'{}');
 let trainee=localStorage.getItem('boh-trainee')||'';
 
-function save(){localStorage.setItem(key,JSON.stringify(progress));}
+async function save(){localStorage.setItem(key,JSON.stringify(progress));if(!trainee)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=id`,{headers:h});const rows=await r.json();if(rows.length){await fetch(`${SUPABASE_URL}/rest/v1/boh_training?id=eq.${rows[0].id}`,{method:'PATCH',headers:h,body:JSON.stringify({progress})});}else{await fetch(`${SUPABASE_URL}/rest/v1/boh_training`,{method:'POST',headers:h,body:JSON.stringify({team_member:trainee,progress})});}}
 function allItems(obj){return obj.sections.flatMap(s=>s[1]);}
 function idFor(group,slug,item){return `${group}:${slug}:${item}`;}
 function pctFor(group,slug,obj){let items=allItems(obj);let n=items.filter(x=>progress[idFor(group,slug,x)]).length;return [n,items.length,items.length?Math.round(n/items.length*100):0];}
