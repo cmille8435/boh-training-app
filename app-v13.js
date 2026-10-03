@@ -1,9 +1,9 @@
 const app=document.getElementById('app');
 const key='boh-training-progress-v1';
-let progress=JSON.parse(localStorage.getItem(key)||'{}');
-let trainee=localStorage.getItem('boh-trainee')||'';
+let progress={};
+let trainee='';
 
-async function save(){localStorage.setItem(key,JSON.stringify(progress));if(!trainee)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=id`,{headers:h});const rows=await r.json();if(rows.length){await fetch(`${SUPABASE_URL}/rest/v1/boh_training?id=eq.${rows[0].id}`,{method:'PATCH',headers:h,body:JSON.stringify({progress})});}else{await fetch(`${SUPABASE_URL}/rest/v1/boh_training`,{method:'POST',headers:h,body:JSON.stringify({team_member:trainee,progress})});}}
+async function save(){if(!trainee)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=id`,{headers:h});const rows=await r.json();if(rows.length){await fetch(`${SUPABASE_URL}/rest/v1/boh_training?id=eq.${rows[0].id}`,{method:'PATCH',headers:h,body:JSON.stringify({progress})});}else{await fetch(`${SUPABASE_URL}/rest/v1/boh_training`,{method:'POST',headers:h,body:JSON.stringify({team_member:trainee,progress})});}}
 function allItems(obj){return obj.sections.flatMap(s=>s[1]);}
 function idFor(group,slug,item){return `${group}:${slug}:${item}`;}
 function pctFor(group,slug,obj){let items=allItems(obj);let n=items.filter(x=>progress[idFor(group,slug,x)]).length;return [n,items.length,items.length?Math.round(n/items.length*100):0];}
@@ -60,12 +60,13 @@ function prog(title,n,t,p){return `<div class="card"><h2>${title}</h2><div class
 
 function trainer(){
  app.innerHTML=`<h1>Trainer View</h1><p class="sub">Enter the team member name, then use the same station checklists to record progress on this device.</p>
- <input class="trainer-name" value="${trainee.replaceAll('"','&quot;')}" placeholder="Team member name" oninput="setTrainee(this.value)">
+ <input class="trainer-name" value="${trainee.replaceAll('"','&quot;')}" placeholder="Team member name" onchange="setTrainee(this.value)">
  <div class="menu">${Object.entries(STATIONS).map(([k,v])=>`<button onclick="station('${k}')">${v.title}</button>`).join('')}
  <button onclick="closingMenu()">Closing</button><button onclick="progressView()">View Progress</button></div>
  <p class="note"><b>Prototype note:</b> progress currently saves only on this phone/browser. Shared progress across multiple trainers will require a connected database in the next version.</p>`;
 }
-localStorage.setItem(key,JSON.stringify(progress));progressView();},500);}
+async function loadRemote(){if(!trainee){progress={};return;}const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=progress`,{headers:h});const rows=await r.json();progress=rows.length&&rows[0].progress?rows[0].progress:{};}
+async function setTrainee(name){trainee=name.trim();await loadRemote();}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>({learn:home,progress:progressView,trainer}[b.dataset.nav])());
 document.getElementById('homeBtn').onclick=home;
 home();
