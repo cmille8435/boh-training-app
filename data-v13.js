@@ -1,9 +1,17 @@
 const SUPABASE_URL = "https://xzwwceoexdnarlcxbqbh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_j5BXr-16DXeukNiSK9SKhA_Fm0v8UdL";
 
+const FOOD_SAFETY_TITLES = {
+  "Completes the Food Safety Pathway training": "Food Safety Pathway has been completed",
+  "Wears all required uniform components": "All required components of uniform are present and in good condition",
+  "Explains the four food safety principles": "Team Member knows and understands the basics of the Food Safety 5",
+  "Demonstrates proper glove use and knows when to change gloves": "Team member understands proper use of gloves and aprons",
+  "Identifies cleaning chemicals and explains their correct uses": "Understands basic use of all chemicals and where chemicals are to remain located"
+};
+
 const FOOD_SAFETY_DETAILS = {
   "Demonstrates proper handwashing": "Demonstrate the handwashing procedure taught in Pathway and explain when hands must be washed.",
-  "Wears all required uniform components": "This includes correct belt, shirt, pants, non-slip shoes, name tag, hair restraints if applicable, and hairnet. Let leadership know if an item needs to be replaced or reordered.",
+  "Wears all required uniform components": "This includes correct belt, shirt, pants, non-slip shoes, name tag, hair restraints if applicable, and hairnet.",
   "Explains the four food safety principles": "Cross Contamination, Time and Temperature, Health and Hygiene, Cleaning and Sanitation",
   "Demonstrates proper glove use and knows when to change gloves": "Include when to change gloves, specifically noting that touching the face, phone, or anything that is not food safe requires changing gloves.",
   "Identifies cleaning chemicals and explains their correct uses": "Degreaser, Super Contact Cleaner, Sizzle Spray, Multi Surface, Sanitizer (wipes and spray), Release Agent, Drain Cleaner"
