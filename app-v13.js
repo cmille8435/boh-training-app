@@ -2,6 +2,8 @@ const app=document.getElementById('app');
 const key='boh-training-progress-v1';
 let progress={};
 let trainee='';
+let trainingContent=[];
+async function loadTrainingContent(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/training_content?select=*&order=sort_order.asc`,{headers:h});trainingContent=await r.json();}
 
 async function save(){if(!trainee)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=id`,{headers:h});const rows=await r.json();if(rows.length){await fetch(`${SUPABASE_URL}/rest/v1/boh_training?id=eq.${rows[0].id}`,{method:'PATCH',headers:h,body:JSON.stringify({progress})});}else{await fetch(`${SUPABASE_URL}/rest/v1/boh_training`,{method:'POST',headers:h,body:JSON.stringify({team_member:trainee,progress})});}}
 function allItems(obj){return obj.sections.flatMap(s=>s[1]);}
