@@ -128,43 +128,129 @@ async function deleteCategoryItem(id){
 
  await editTraining();
 }
- 
+ async function welcome(){
+ await loadTrainingContent();
 
-function welcome(){
- app.innerHTML=`<h1>Welcome & Restaurant Tour</h1><p class="sub">Complete these basics before station training.</p>
+ const added=trainingContent.filter(
+  x=>x.section==='welcome' &&
+  x.category==='welcome' &&
+  x.item_type!=='category'
+ );
+
+ app.innerHTML=`<h1>Welcome & Restaurant Tour</h1>
+ <p class="sub">Complete these basics before station training.</p>
+
  <div class="section"><h2>Welcome</h2>
- ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}</div>
- <p class="note">This prototype keeps the welcome section intentionally short. Add your restaurant-specific tour details when you are ready.</p>`;
+ ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
+ </div>
+
+ ${added.length?`
+  <div class="section">
+   <h2>Added Training</h2>
+   ${added.map(x=>`
+    <div class="card">
+     <h2>${esc(x.title)}</h2>
+     ${x.description?`<p>${esc(x.description)}</p>`:''}
+     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
+    </div>
+   `).join('')}
+  </div>
+ `:''}`;
 }
-
-function check(group,slug,item){
- let id=idFor(group,slug,item), checked=progress[id]?'checked':'';
- return `<label class="checkrow"><input type="checkbox" ${checked} onchange="toggle('${encodeURIComponent(id)}',this.checked)"><span>${item}</span></label>`;
-}
-
-function toggle(encoded,val){progress[decodeURIComponent(encoded)]=val;save();}
-
-function station(slug){
+async function station(slug){
  let s=STATIONS[slug];
- app.innerHTML=`<h1>${s.title}</h1><p class="sub">Quick-read training guide. Check an item when it has been demonstrated.</p>
- ${s.sections.map(([title,items])=>`<div class="section"><h2>${title}</h2>${items.map(x=>check('station',slug,x)).join('')}</div>`).join('')}`;
+
+ await loadTrainingContent();
+
+ const added=trainingContent.filter(
+  x=>x.section==='station' &&
+  x.category===slug &&
+  x.item_type!=='category'
+ );
+
+ app.innerHTML=`<h1>${s.title}</h1>
+ <p class="sub">Quick-read training guide. Check an item when it has been demonstrated.</p>
+
+ ${s.sections.map(([title,items])=>`
+  <div class="section">
+   <h2>${title}</h2>
+   ${items.map(x=>check('station',slug,x)).join('')}
+  </div>
+ `).join('')}
+
+ ${added.length?`
+  <div class="section">
+   <h2>Added Training</h2>
+   ${added.map(x=>`
+    <div class="card">
+     <h2>${esc(x.title)}</h2>
+     ${x.description?`<p>${esc(x.description)}</p>`:''}
+     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
+    </div>
+   `).join('')}
+  </div>
+ `:''}`;
 }
+
 
 function closingMenu(){
  app.innerHTML=`<h1>Closing</h1><p class="sub">Choose a closing area.</p><div class="menu">
  ${Object.entries(CLOSING).map(([k,v])=>`<button onclick="closingPage('${k}')">${v.title.replace('Closing ','')}</button>`).join('')}</div>`;
 }
-
-function closingPage(slug){
+async function closingPage(slug){
  let s=CLOSING[slug];
- app.innerHTML=`<h1>${s.title}</h1><p class="sub">Quick-read closing guide.</p>
- ${s.sections.map(([title,items])=>`<div class="section"><h2>${title}</h2>${items.map(x=>check('closing',slug,x)).join('')}</div>`).join('')}`;
+
+ await loadTrainingContent();
+
+ const added=trainingContent.filter(
+  x=>x.section==='closing' &&
+  x.category==='closing' &&
+  x.item_type!=='category'
+ );
+
+ app.innerHTML=`<h1>${s.title}</h1>
+ <p class="sub">Quick-read closing guide.</p>
+
+ ${s.sections.map(([title,items])=>`
+  <div class="section">
+   <h2>${title}</h2>
+   ${items.map(x=>check('closing',slug,x)).join('')}
+  </div>
+ `).join('')}
+
+ ${added.length?`
+  <div class="section">
+   <h2>Added Training</h2>
+   ${added.map(x=>`
+    <div class="card">
+     <h2>${esc(x.title)}</h2>
+     ${x.description?`<p>${esc(x.description)}</p>`:''}
+     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
+    </div>
+   `).join('')}
+  </div>
+ `:''}`;
+}
+function check(group,slug,item){
+ let id=idFor(group,slug,item), checked=progress[id]?'checked':'';
+ return `<label class="checkrow"><input type="checkbox" ${checked} onchange="toggle('${encodeURIComponent(id)}',this.checked)"><span>${item}</span></label>`;
+}
+
+function toggle(encoded,val){
+ progress[decodeURIComponent(encoded)]=val;
+ save();
 }
 
 function progressView(){
  let blocks=[];
- for (const [k,v] of Object.entries(STATIONS)){let [n,t,p]=pctFor('station',k,v);blocks.push(prog(v.title,n,t,p));}
- for (const [k,v] of Object.entries(CLOSING)){let [n,t,p]=pctFor('closing',k,v);blocks.push(prog(v.title,n,t,p));}
+ for(const [k,v] of Object.entries(STATIONS)){
+  let [n,t,p]=pctFor('station',k,v);
+  blocks.push(prog(v.title,n,t,p));
+ }
+ for(const [k,v] of Object.entries(CLOSING)){
+  let [n,t,p]=pctFor('closing',k,v);
+  blocks.push(prog(v.title,n,t,p));
+ }
  app.innerHTML=`<h1>My Progress</h1><p>Team member: <b>${trainee || 'Not selected'}</b></p>${blocks.join('')}`;
 }
 async function allProgress(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?select=team_member,progress&order=team_member.asc`,{headers:h});const rows=await r.json();const people={};rows.forEach(x=>{if(!x.team_member)return;people[x.team_member]={...(people[x.team_member]||{}),...(x.progress||{})};});const ids=[];for(const[k,v]of Object.entries(STATIONS))allItems(v).forEach(item=>ids.push(idFor('station',k,item)));for(const[k,v]of Object.entries(CLOSING))allItems(v).forEach(item=>ids.push(idFor('closing',k,item)));app.innerHTML=`<h1>All Progress</h1><div class="menu">${Object.entries(people).map(([name,p])=>{const n=ids.filter(id=>p[id]).length;const pct=ids.length?Math.round(n/ids.length*100):0;return `<button onclick="setTrainee('${name.replaceAll("'","\\'")}').then(progressView)">${name} — ${pct}%</button>`;}).join('')}</div>`;}
