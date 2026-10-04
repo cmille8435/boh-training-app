@@ -86,7 +86,26 @@ async function addCategoryItem(section,category){
 
  await editTraining();
 }
+async function addSubsectionItem(section,category,subsection){
+ const title=prompt('Training item title');
+ if(!title)return;
 
+ const description=prompt('Instructions or description')||'';
+ const link=prompt('Link (optional)')||'';
+
+ await addTrainingItem({
+  section,
+  category,
+  subsection,
+  title:title.trim(),
+  description:description.trim(),
+  link_url:link.trim(),
+  item_type:link.trim()?'link':'item',
+  sort_order:999
+ });
+
+ await station(category);
+}
 async function editCategoryItem(id){
  const item=trainingContent.find(x=>x.id===id);
  if(!item)return;
@@ -162,36 +181,34 @@ async function station(slug){
 
  await loadTrainingContent();
 
- const added=trainingContent.filter(
-  x=>x.section==='station' &&
-  x.category===slug &&
-  x.item_type!=='category'
- );
-
  app.innerHTML=`<h1>${s.title}</h1>
  <p class="sub">Quick-read training guide. Check an item when it has been demonstrated.</p>
 
- ${s.sections.map(([title,items])=>`
-  <div class="section">
-   <h2>${title}</h2>
-   ${items.map(x=>check('station',slug,x)).join('')}
-  </div>
- `).join('')}
+ ${s.sections.map(([title,items])=>{
+   const added=trainingContent.filter(
+    x=>x.section==='station' &&
+    x.category===slug &&
+    x.subsection===title &&
+    x.item_type!=='category'
+   );
 
- ${added.length?`
-  <div class="section">
-   <h2>Added Training</h2>
-   ${added.map(x=>`
-    <div class="card">
-     <h2>${esc(x.title)}</h2>
-     ${x.description?`<p>${esc(x.description)}</p>`:''}
-     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
-    </div>
-   `).join('')}
-  </div>
- `:''}`;
+   return `<div class="section">
+    <h2>${title}</h2>
+
+    ${items.map(x=>check('station',slug,x)).join('')}
+
+    ${added.map(x=>`
+     <div class="card">
+      <h2>${esc(x.title)}</h2>
+      ${x.description?`<p>${esc(x.description)}</p>`:''}
+      ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
+     </div>
+    `).join('')}
+
+    <button onclick="addSubsectionItem('station','${slug}','${title.replaceAll("'","\\'")}')">Add Item</button>
+   </div>`;
+ }).join('')}`;
 }
-
 
 function closingMenu(){
  app.innerHTML=`<h1>Closing</h1><p class="sub">Choose a closing area.</p><div class="menu">
