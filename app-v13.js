@@ -20,6 +20,7 @@ function home(){
  <button onclick="closingMenu()">Closing</button>
  <button onclick="progressView()">My Progress</button>
  <button onclick="addTeamMember(prompt('Enter team member name'))">Add Team Member</button>
+ <button onclick="allProgress()">All Progress</button>
  </div>`;
 }
 
@@ -60,7 +61,7 @@ function progressView(){
  for (const [k,v] of Object.entries(CLOSING)){let [n,t,p]=pctFor('closing',k,v);blocks.push(prog(v.title,n,t,p));}
  app.innerHTML=`<h1>My Progress</h1><p>Team member: <b>${trainee || 'Not selected'}</b></p>${blocks.join('')}`;
 }
-
+async function allProgress(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?select=team_member,progress&order=team_member.asc`,{headers:h});const rows=await r.json();const people={};rows.forEach(x=>{if(!x.team_member)return;people[x.team_member]={...(people[x.team_member]||{}),...(x.progress||{})};});const ids=[];for(const[k,v]of Object.entries(STATIONS))allItems(v).forEach(item=>ids.push(idFor('station',k,item)));for(const[k,v]of Object.entries(CLOSING))allItems(v).forEach(item=>ids.push(idFor('closing',k,item)));app.innerHTML=`<h1>All Progress</h1><div class="menu">${Object.entries(people).map(([name,p])=>{const n=ids.filter(id=>p[id]).length;const pct=ids.length?Math.round(n/ids.length*100):0;return `<button onclick="setTrainee('${name.replaceAll("'","\\'")}').then(progressView)">${name} — ${pct}%</button>`;}).join('')}</div>`;}
 function prog(title,n,t,p){return `<div class="card"><h2>${title}</h2><div class="progressbar"><span style="width:${p}%"></span></div><div class="small">${n} of ${t} complete · ${p}%</div></div>`;}
 async function loadTeamMembers(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?select=team_member&order=team_member.asc`,{headers:h});const rows=await r.json();return [...new Set(rows.map(x=>x.team_member).filter(Boolean))];}
 async function  trainer(){
