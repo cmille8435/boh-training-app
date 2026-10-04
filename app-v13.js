@@ -1,314 +1,50 @@
 const app=document.getElementById('app');
-const key='boh-training-progress-v1';
-let progress={};
-let trainee='';
-let trainingContent=[];
-async function loadTrainingContent(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/training_content?select=*&order=sort_order.asc`,{headers:h});trainingContent=await r.json();}
-async function addTrainingItem(item){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const r=await fetch(`${SUPABASE_URL}/rest/v1/training_content`,{method:'POST',headers:h,body:JSON.stringify(item)});if(!r.ok)throw new Error(await r.text());await loadTrainingContent();}
-async function addTeamMember(name){name=name.trim();if(!name)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const q=encodeURIComponent(name);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=id`,{headers:h});const rows=await r.json();if(rows.length)return;await fetch(`${SUPABASE_URL}/rest/v1/boh_training`,{method:'POST',headers:h,body:JSON.stringify({team_member:name,progress:{}})});}
-
-async function save(){if(!trainee)return;const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=id`,{headers:h});const rows=await r.json();if(rows.length){await fetch(`${SUPABASE_URL}/rest/v1/boh_training?id=eq.${rows[0].id}`,{method:'PATCH',headers:h,body:JSON.stringify({progress})});}else{await fetch(`${SUPABASE_URL}/rest/v1/boh_training`,{method:'POST',headers:h,body:JSON.stringify({team_member:trainee,progress})});}}
-function allItems(obj){return obj.sections.flatMap(s=>s[1]);}
+let progress={},trainee='',trainingContent=[],currentPage={group:'home'},editing=null,saveQueue=Promise.resolve();
+const META='__boh_edit__:';
+const WELCOME={title:'Welcome & Restaurant Tour',sections:[['Welcome',['Clock In','Restaurant Tour']]]};
+function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+function arg(s){return esc(JSON.stringify(s));}
 function idFor(group,slug,item){return `${group}:${slug}:${item}`;}
-function pctFor(group,slug,obj){let items=allItems(obj);let n=items.filter(x=>progress[idFor(group,slug,x)]).length;return [n,items.length,items.length?Math.round(n/items.length*100):0];}
-
-function home(){
- app.innerHTML=`<h1>BOH Training</h1><p class="sub">Simple training reference and progress tracker.</p>
- <div class="menu">
- <button class="primary" onclick="welcome()">Welcome & Restaurant Tour</button>
- ${Object.entries(STATIONS).map(([k,v])=>`<button onclick="station('${k}')">${v.title}</button>`).join('')}
- <button onclick="closingMenu()">Closing</button>
- <button onclick="progressView()">My Progress</button>
- <button onclick="addTeamMember(prompt('Enter team member name'))">Add Team Member</button>
- <button onclick="allProgress()">All Progress</button>
- <button onclick="editTraining()">Edit Training</button>
- 
- </div>`;
-}
-function esc(s){
- return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-}
-
-async function editTraining(){
- await loadTrainingContent();
-
- const cats=[
-  ['welcome','welcome','Welcome'],
-  ['station','primary','Primary'],
-  ['station','secondary','Secondary'],
-  ['station','machines','Machines'],
-  ['station','breading','Breading'],
-  ['station','fries','Fries'],
-  ['closing','closing','Closing']
- ];
-
- app.innerHTML=`<h1>Edit Training</h1>
- <p class="sub">Choose a category, then add, edit, or delete training items and links.</p>
- <select id="editCategory" class="trainer-name" onchange="renderEditCategory()">
- ${cats.map(c=>`<option value="${c[0]}|${c[1]}">${c[2]}</option>`).join('')}
- </select>
- <div id="editItems"></div>`;
-
- renderEditCategory();
-}
-
-function renderEditCategory(){
- const [section,category]=document.getElementById('editCategory').value.split('|');
- const items=trainingContent.filter(x=>x.section===section&&x.category===category&&x.item_type!=='category');
-
- document.getElementById('editItems').innerHTML=`
- <button onclick="addCategoryItem('${section}','${category}')">Add New Item</button>
- ${items.length ? items.map(x=>`
-  <div class="card">
-   <h2>${esc(x.title)}</h2>
-   ${x.description?`<p>${esc(x.description)}</p>`:''}
-   ${x.link_url?`<p>Link attached</p>`:''}
-   <button onclick="editCategoryItem(${x.id})">Edit</button>
-   <button onclick="deleteCategoryItem(${x.id})">Delete</button>
-  </div>`).join('') : '<p class="note">No added items yet.</p>'}`;
-}
-
-async function addCategoryItem(section,category){
- const title=prompt('Training item title');
- if(!title)return;
- const description=prompt('Instructions or description')||'';
- const link=prompt('Link (optional)')||'';
-
- await addTrainingItem({
-  section,
-  category,
-  title:title.trim(),
-  description:description.trim(),
-  link_url:link.trim(),
-  item_type:link.trim()?'link':'item',
-  sort_order:999
- });
-
- await editTraining();
-}
-async function addSubsectionItem(section,category,subsection){
- const title=prompt('Training item title');
- if(!title)return;
-
- const description=prompt('Instructions or description')||'';
- const link=prompt('Link (optional)')||'';
-
- await addTrainingItem({
-  section,
-  category,
-  subsection,
-  title:title.trim(),
-  description:description.trim(),
-  link_url:link.trim(),
-  item_type:link.trim()?'link':'item',
-  sort_order:999
- });
-
- await station(category);
-}
-async function editCategoryItem(id){
- const item=trainingContent.find(x=>x.id===id);
- if(!item)return;
-
- const title=prompt('Title',item.title||'');
- if(title===null)return;
-
- const description=prompt('Instructions or description',item.description||'');
- if(description===null)return;
-
- const link=prompt('Link (optional)',item.link_url||'');
- if(link===null)return;
-
- const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
-
- await fetch(`${SUPABASE_URL}/rest/v1/training_content?id=eq.${id}`,{
-  method:'PATCH',
-  headers:h,
-  body:JSON.stringify({
-   title:title.trim(),
-   description:description.trim(),
-   link_url:link.trim(),
-   item_type:link.trim()?'link':'item'
-  })
- });
-
- await editTraining();
-}
-
-async function deleteCategoryItem(id){
- if(!confirm('Delete this training item?'))return;
-
- const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
-
- await fetch(`${SUPABASE_URL}/rest/v1/training_content?id=eq.${id}`,{
-  method:'DELETE',
-  headers:h
- });
-
- await editTraining();
-}
-
-async function welcome(){
- await loadTrainingContent();
-
- const added=trainingContent.filter(
-  x=>x.section==='welcome' &&
-  x.category==='welcome' &&
-  x.item_type!=='category'
- );
-
- app.innerHTML=`<h1>Welcome & Restaurant Tour</h1>
- <p class="sub">Complete these basics before station training.</p>
-
- ${added.length?`
-  <div class="section">
-   <h2>Start Here</h2>
-   ${added.map(x=>`
-    <div class="card">
-     <h2>${esc(x.title)}</h2>
-     ${x.description?`<p>${esc(x.description)}</p>`:''}
-     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
-    </div>
-   `).join('')}
-  </div>
- `:''}
-
- <div class="section">
-  <h2>Welcome</h2>
-  ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
- </div>`;
-}
-async function station(slug){
- let s=STATIONS[slug];
- await loadTrainingContent();
-
- app.innerHTML=`<h1>${s.title}</h1>
- <p class="sub">Quick-read training guide. Check an item when it has been demonstrated.</p>
-
- ${s.sections.map(([title,items])=>{
-   const added=trainingContent.filter(
-    x=>x.section==='station' &&
-    x.category===slug &&
-    x.subsection===title &&
-    x.item_type!=='category'
-   );
-
-   return `<div class="section">
-    <h2>${title}</h2>
-
-    ${items.map(x=>check('station',slug,x)).join('')}
-
-    ${added.map(x=>`
-     <div class="card">
-      <h2>${esc(x.title)}</h2>
-      ${x.description?`<p>${esc(x.description)}</p>`:''}
-      ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
-     </div>
-    `).join('')}
-
-    <button onclick="addSubsectionItem('station','${slug}','${title.replaceAll("'","\\'")}')">Add Item</button>
-   </div>`;
- }).join('')}`;
-}
-
-function closingMenu(){
- app.innerHTML=`<h1>Closing</h1>
- <p class="sub">Choose a closing area.</p>
- <div class="menu">
- ${Object.entries(CLOSING).map(([k,v])=>`<button onclick="closingPage('${k}')">${v.title.replace('Closing ','')}</button>`).join('')}
- </div>`;
-}
-
-async function closingPage(slug){
- let s=CLOSING[slug];
- await loadTrainingContent();
-
- app.innerHTML=`<h1>${s.title}</h1>
- <p class="sub">Quick-read closing guide.</p>
-
- ${s.sections.map(([title,items])=>{
-   const subsectionKey=`${slug}::${title}`;
-
-   const added=trainingContent.filter(
-    x=>x.section==='closing' &&
-    x.category==='closing' &&
-    x.subsection===subsectionKey &&
-    x.item_type!=='category'
-   );
-
-   return `<div class="section">
-    <h2>${title}</h2>
-
-    ${items.map(x=>check('closing',slug,x)).join('')}
-
-    ${added.map(x=>`
-     <div class="card">
-      <h2>${esc(x.title)}</h2>
-      ${x.description?`<p>${esc(x.description)}</p>`:''}
-      ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
-     </div>
-    `).join('')}
-
-    <button onclick="addClosingSubsectionItem('${slug}','${title.replaceAll("'","\\'")}')">Add Item</button>
-   </div>`;
- }).join('')}`;
-}
-
-async function addClosingSubsectionItem(slug,subsection){
- const title=prompt('Training item title');
- if(!title)return;
-
- const description=prompt('Instructions or description')||'';
- const link=prompt('Link (optional)')||'';
-
- await addTrainingItem({
-  section:'closing',
-  category:'closing',
-  subsection:`${slug}::${subsection}`,
-  title:title.trim(),
-  description:description.trim(),
-  link_url:link.trim(),
-  item_type:link.trim()?'link':'item',
-  sort_order:999
- });
-
- await closingPage(slug);
-}
-function check(group,slug,item){
- let id=idFor(group,slug,item), checked=progress[id]?'checked':'';
- return `<label class="checkrow"><input type="checkbox" ${checked} onchange="toggle('${encodeURIComponent(id)}',this.checked)"><span>${item}</span></label>`;
-}
-
-function toggle(encoded,val){
- progress[decodeURIComponent(encoded)]=val;
- save();
-}
-
-function progressView(){
- let blocks=[];
- for(const [k,v] of Object.entries(STATIONS)){
-  let [n,t,p]=pctFor('station',k,v);
-  blocks.push(prog(v.title,n,t,p));
- }
- for(const [k,v] of Object.entries(CLOSING)){
-  let [n,t,p]=pctFor('closing',k,v);
-  blocks.push(prog(v.title,n,t,p));
- }
- app.innerHTML=`<h1>My Progress</h1><p>Team member: <b>${trainee || 'Not selected'}</b></p>${blocks.join('')}`;
-}
-async function allProgress(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?select=team_member,progress&order=team_member.asc`,{headers:h});const rows=await r.json();const people={};rows.forEach(x=>{if(!x.team_member)return;people[x.team_member]={...(people[x.team_member]||{}),...(x.progress||{})};});const ids=[];for(const[k,v]of Object.entries(STATIONS))allItems(v).forEach(item=>ids.push(idFor('station',k,item)));for(const[k,v]of Object.entries(CLOSING))allItems(v).forEach(item=>ids.push(idFor('closing',k,item)));app.innerHTML=`<h1>All Progress</h1><div class="menu">${Object.entries(people).map(([name,p])=>{const n=ids.filter(id=>p[id]).length;const pct=ids.length?Math.round(n/ids.length*100):0;return `<button onclick="setTrainee('${name.replaceAll("'","\\'")}').then(progressView)">${name} — ${pct}%</button>`;}).join('')}</div>`;}
-function prog(title,n,t,p){return `<div class="card"><h2>${title}</h2><div class="progressbar"><span style="width:${p}%"></span></div><div class="small">${n} of ${t} complete · ${p}%</div></div>`;}
-async function loadTeamMembers(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?select=team_member&order=team_member.asc`,{headers:h});const rows=await r.json();return [...new Set(rows.map(x=>x.team_member).filter(Boolean))];}
-async function  trainer(){
-const teamMembers=await loadTeamMembers(); 
- app.innerHTML=`<h1>Trainer View</h1><p class="sub">Enter the team member name, then use the same station checklists to record progress on this device.</p>
-<select class="trainer-name" onchange="setTrainee(this.value)"><option value="">Select team member</option>${teamMembers.map(name=>`<option value="${name.replaceAll('"','&quot;')}" ${name===trainee?'selected':''}>${name}</option>`).join('')}</select>
- <div class="menu">${Object.entries(STATIONS).map(([k,v])=>`<button onclick="station('${k}')">${v.title}</button>`).join('')}
- <button onclick="closingMenu()">Closing</button><button onclick="progressView()">View Progress</button></div>
- <p class="note"><b>Prototype note:</b> progress currently saves only on this phone/browser. Shared progress across multiple trainers will require a connected database in the next version.</p>`;
-}
-async function loadRemote(){if(!trainee){progress={};return;}const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const q=encodeURIComponent(trainee);const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?team_member=eq.${q}&select=progress`,{headers:h});const rows=await r.json();progress=rows.length&&rows[0].progress?rows[0].progress:{};}
-async function setTrainee(name){trainee=name.trim();await loadRemote();}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>({learn:home,progress:progressView,trainer}[b.dataset.nav])());
-document.getElementById('homeBtn').onclick=home;
-home();
+async function request(path,options={}){const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...options,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',...options.headers}});if(!r.ok)throw new Error('Unable to save or load. Please try again. ('+r.status+')');if(r.status===204)return null;const text=await r.text();return text?JSON.parse(text):null;}
+async function loadTrainingContent(){const rows=await request('training_content?select=*&order=sort_order.asc');if(!Array.isArray(rows))throw new Error('Training data could not be loaded.');trainingContent=rows;}
+function report(error){alert(error.message||'Something went wrong. Please try again.');}
+async function run(action){try{await action();}catch(error){report(error);}}
+function base(group,slug){return group==='station'?STATIONS[slug]:group==='closing'?CLOSING[slug]:WELCOME;}
+function meta(key){const row=trainingContent.find(x=>x.title===META+key&&x.item_type==='category');if(!row)return {};try{return JSON.parse(row.description||'{}');}catch{return {};}}
+async function putMeta(key,value,group,slug,subsection=''){const title=META+key;const old=trainingContent.find(x=>x.title===title&&x.item_type==='category');const body={section:group,category:group==='closing'?'closing':slug,subsection,title,description:JSON.stringify(value),item_type:'category',sort_order:-1};await request(old?'training_content?id=eq.'+encodeURIComponent(old.id):'training_content',{method:old?'PATCH':'POST',body:JSON.stringify(body)});await loadTrainingContent();}
+function pageTitle(group,slug){return meta('page:'+group+':'+slug).title||base(group,slug).title;}
+function sectionTitle(group,slug,title){return meta('section:'+group+':'+slug+':'+title).title||title;}
+function extraRows(group,slug){return trainingContent.filter(x=>x.item_type!=='category'&&x.section===group&&x.category===(group==='closing'?'closing':slug));}
+function pageSections(group,slug){const result=base(group,slug).sections.map(([title,items])=>({key:title,items:items.map(original=>{const key=idFor(group,slug,original),m=meta('item:'+key);return {key,title:m.title??original,description:m.description||'',link_url:m.link_url||'',hidden:!!m.hidden,original};})}));for(const row of extraRows(group,slug)){let section=row.subsection||'Additional Training';if(group==='closing'){if(row.subsection?.includes('::')){const [area,...parts]=row.subsection.split('::');if(area!==slug)continue;section=parts.join('::');}else if(slug!=='boards')continue;}let target=result.find(x=>x.key===section);if(!target){target={key:section,items:[]};result.push(target);}target.items.push({key:'content:'+row.id,title:row.title,description:row.description||'',link_url:row.link_url||'',rowId:row.id,hidden:!!meta('hidden:'+row.id).hidden});}return result;}
+function pageItems(group,slug){return pageSections(group,slug).flatMap(s=>s.items).filter(x=>!x.hidden);}
+function allIds(){return [...Object.keys(STATIONS).flatMap(slug=>pageItems('station',slug)),...Object.keys(CLOSING).flatMap(slug=>pageItems('closing',slug))].map(x=>x.key);}
+function safeLink(url){try{const u=new URL(url);return ['https:','http:'].includes(u.protocol)?u.href:'';}catch{return '';}}
+function controls(group,slug){return `<div class="edit-actions"><button onclick="run(()=>editPageTitle(${arg(group)},${arg(slug)}))">Edit page title</button><button onclick="editTraining()">Edit Training</button></div>`;}
+function home(){currentPage={group:'home'};app.innerHTML=`<h1>BOH Training</h1><p class="sub">Training reference and shared progress tracker.</p><div class="menu"><button class="primary" onclick="welcome()">${esc(pageTitle('welcome','welcome'))}</button>${Object.keys(STATIONS).map(k=>`<button onclick="station(${arg(k)})">${esc(pageTitle('station',k))}</button>`).join('')}<button onclick="closingMenu()">Closing</button><button onclick="progressView()">My Progress</button><button onclick="run(()=>addTeamMember(prompt('Enter team member name')))">Add Team Member</button><button onclick="allProgress()">All Progress</button><button onclick="editTraining()">Edit Training</button></div>`;}
+async function openPage(group,slug){await run(async()=>{await loadTrainingContent();currentPage={group,slug};renderPage(group,slug);});}
+function welcome(){return openPage('welcome','welcome');}
+function station(slug){return openPage('station',slug);}
+function closingPage(slug){return openPage('closing',slug);}
+function itemHtml(group,slug,section,item,showHidden=false){if(item.hidden&&!showHidden)return '';const link=safeLink(item.link_url);return `<div class="training-item"><label class="checkrow"><input type="checkbox" ${progress[item.key]?'checked':''} ${item.hidden?'disabled':''} onchange="toggle(${arg(item.key)},this.checked)"><span>${esc(item.title)}${item.hidden?' (hidden)':''}${item.description?`<small class="item-description">${esc(item.description)}</small>`:''}</span></label>${link?`<a class="item-link" href="${esc(link)}" target="_blank" rel="noopener">Open Link</a>`:''}<div class="edit-actions"><button onclick="openItemEditor(${arg(group)},${arg(slug)},${arg(section)},${arg(item.key)})">Edit</button><button onclick="run(()=>hideItem(${arg(group)},${arg(slug)},${arg(item.key)},${!item.hidden}))">${item.hidden?'Restore':'Hide'}</button></div></div>`;}
+function renderPage(group,slug,showHidden=false){app.innerHTML=`<h1>${esc(pageTitle(group,slug))}</h1><p class="sub">${trainee?'Team member: '+esc(trainee):'Select a team member in Trainer View to record completion.'}</p>${controls(group,slug)}${pageSections(group,slug).map(s=>`<div class="section"><div class="section-heading"><h2>${esc(sectionTitle(group,slug,s.key))}</h2><button onclick="run(()=>editSectionTitle(${arg(group)},${arg(slug)},${arg(s.key)}))">Edit heading</button></div>${s.items.map(x=>itemHtml(group,slug,s.key,x,showHidden)).join('')}<button class="add-item" onclick="openItemEditor(${arg(group)},${arg(slug)},${arg(s.key)},null)">Add Item</button></div>`).join('')}`;}
+function closingMenu(){currentPage={group:'closingMenu'};app.innerHTML=`<h1>Closing</h1><p class="sub">Choose a closing area.</p><div class="menu">${Object.keys(CLOSING).map(k=>`<button onclick="closingPage(${arg(k)})">${esc(pageTitle('closing',k))}</button>`).join('')}</div>`;}
+function categories(){return [['welcome','welcome',pageTitle('welcome','welcome')],...Object.keys(STATIONS).map(k=>['station',k,pageTitle('station',k)]),...Object.keys(CLOSING).map(k=>['closing',k,pageTitle('closing',k)])];}
+async function editTraining(selection){await run(async()=>{await loadTrainingContent();currentPage={group:'editor',selection:selection||'welcome|welcome'};app.innerHTML=`<h1>Edit Training</h1><p class="sub">Edit titles, section headings, instructions, and links. Hidden items can be restored here.</p><select id="editCategory" class="trainer-name" onchange="renderEditCategory()">${categories().map(([g,k,title])=>`<option value="${g}|${k}" ${g+'|'+k===currentPage.selection?'selected':''}>${esc(title)}</option>`).join('')}</select><div id="editItems"></div>`;renderEditCategory();});}
+function renderEditCategory(){const selection=document.getElementById('editCategory').value;currentPage={group:'editor',selection};const [g,k]=selection.split('|');document.getElementById('editItems').innerHTML=`<button onclick="run(()=>editPageTitle(${arg(g)},${arg(k)}))">Edit page title</button>${pageSections(g,k).map(s=>`<div class="section"><div class="section-heading"><h2>${esc(sectionTitle(g,k,s.key))}</h2><button onclick="run(()=>editSectionTitle(${arg(g)},${arg(k)},${arg(s.key)}))">Edit heading</button></div>${s.items.map(x=>itemHtml(g,k,s.key,x,true)).join('')}<button class="add-item" onclick="openItemEditor(${arg(g)},${arg(k)},${arg(s.key)},null)">Add Item</button></div>`).join('')}`;}
+async function refreshPage(){if(currentPage.group==='editor')return editTraining(currentPage.selection);if(['welcome','station','closing'].includes(currentPage.group))return openPage(currentPage.group,currentPage.slug);home();}
+async function editPageTitle(group,slug){const title=prompt('Page title',pageTitle(group,slug));if(title===null||!title.trim())return;await putMeta('page:'+group+':'+slug,{title:title.trim()},group,slug);await refreshPage();}
+async function editSectionTitle(group,slug,section){const title=prompt('Section heading',sectionTitle(group,slug,section));if(title===null||!title.trim())return;await putMeta('section:'+group+':'+slug+':'+section,{title:title.trim()},group,slug,section);await refreshPage();}
+function openItemEditor(group,slug,section,key){const item=key?pageSections(group,slug).flatMap(s=>s.items).find(x=>x.key===key):null;editing={group,slug,section,key,item,returnPage:{...currentPage}};app.innerHTML=`<h1>${item?'Edit':'Add'} Training Item</h1><form id="itemForm" onsubmit="event.preventDefault();run(saveItemEditor)"><label class="field">Title<input id="itemTitle" required value="${esc(item?.title||'')}"></label><label class="field">Instructions<textarea id="itemDescription" rows="6">${esc(item?.description||'')}</textarea></label><label class="field">Link (optional)<input id="itemLink" type="url" placeholder="https://" value="${esc(item?.link_url||'')}"></label><div class="edit-actions"><button class="save-item" id="saveItemButton" type="submit">Save Changes</button><button type="button" onclick="cancelItemEditor()">Cancel</button></div><p id="editorStatus" role="status"></p></form>`;}
+async function cancelItemEditor(){currentPage=editing.returnPage;editing=null;await refreshPage();}
+async function saveItemEditor(){const e=editing,title=document.getElementById('itemTitle').value.trim(),description=document.getElementById('itemDescription').value.trim(),link_url=document.getElementById('itemLink').value.trim();if(!title)throw new Error('Enter a title.');if(link_url&&!safeLink(link_url))throw new Error('Use an http or https link.');const button=document.getElementById('saveItemButton');button.disabled=true;document.getElementById('editorStatus').textContent='Saving…';try{if(e.item?.original!==undefined){await putMeta('item:'+e.key,{...meta('item:'+e.key),title,description,link_url},e.group,e.slug,e.section);}else{const body={section:e.group,category:e.group==='closing'?'closing':e.slug,subsection:e.group==='closing'?e.slug+'::'+e.section:e.section,title,description,link_url,item_type:link_url?'link':'item',sort_order:999};await request(e.item?'training_content?id=eq.'+encodeURIComponent(e.item.rowId):'training_content',{method:e.item?'PATCH':'POST',body:JSON.stringify(body)});await loadTrainingContent();}currentPage=e.returnPage;editing=null;await refreshPage();}catch(error){button.disabled=false;document.getElementById('editorStatus').textContent=error.message;throw error;}}
+async function hideItem(group,slug,key,hidden){const item=pageSections(group,slug).flatMap(s=>s.items).find(x=>x.key===key);if(!item)return;if(hidden&&!confirm('Hide this item from training? You can restore it in Edit Training.'))return;if(item.original!==undefined)await putMeta('item:'+key,{...meta('item:'+key),hidden},group,slug);else await putMeta('hidden:'+item.rowId,{hidden},group,slug);await refreshPage();}
+async function addTeamMember(name){name=(name||'').trim();if(!name)return;const rows=await request('boh_training?team_member=eq.'+encodeURIComponent(name)+'&select=id');if(!rows.length)await request('boh_training',{method:'POST',body:JSON.stringify({team_member:name,progress:{}})});await setTrainee(name);await trainer();}
+async function loadRemote(){if(!trainee){progress={};return;}const rows=await request('boh_training?team_member=eq.'+encodeURIComponent(trainee)+'&select=progress');progress=rows.reduce((all,row)=>({...all,...row.progress}),{});}
+async function setTrainee(name){const previous=trainee;await saveQueue;trainee=(name||'').trim();try{await loadRemote();}catch(error){trainee=previous;throw error;}}
+function toggle(key,value){if(!trainee){refreshPage();alert('Select a team member in Trainer View first.');return;}progress[key]=value;const name=trainee;saveQueue=saveQueue.then(async()=>{const rows=await request('boh_training?team_member=eq.'+encodeURIComponent(name)+'&select=id,progress');const merged=rows.reduce((p,row)=>({...p,...row.progress}),{});merged[key]=value;if(rows.length)await request('boh_training?id=eq.'+encodeURIComponent(rows[0].id),{method:'PATCH',body:JSON.stringify({progress:merged})});else await request('boh_training',{method:'POST',body:JSON.stringify({team_member:name,progress:merged})});if(trainee===name)progress={...merged,...progress};}).catch(error=>{report(error);});}
+function prog(title,items,p){const n=items.filter(x=>p[x.key]).length,t=items.length,pct=t?Math.round(n/t*100):0;return `<div class="card"><h2>${esc(title)}</h2><div class="progressbar"><span style="width:${pct}%"></span></div><div class="small">${n} of ${t} complete · ${pct}%</div></div>`;}
+async function progressView(){await run(async()=>{await saveQueue;await loadTrainingContent();await loadRemote();currentPage={group:'progress'};app.innerHTML=`<h1>My Progress</h1><p>Team member: <b>${esc(trainee||'Not selected')}</b></p>${Object.keys(STATIONS).map(k=>prog(pageTitle('station',k),pageItems('station',k),progress)).join('')}${Object.keys(CLOSING).map(k=>prog(pageTitle('closing',k),pageItems('closing',k),progress)).join('')}<button onclick="trainer()">Open training checklists</button>`;});}
+async function selectPerson(name){await run(async()=>{await setTrainee(name);await trainer();});}
+async function allProgress(){await run(async()=>{await loadTrainingContent();const rows=await request('boh_training?select=team_member,progress&order=team_member.asc'),people=new Map();rows.forEach(x=>{if(x.team_member)people.set(x.team_member,{...people.get(x.team_member),...x.progress});});const ids=allIds();currentPage={group:'allProgress'};app.innerHTML=`<h1>All Progress</h1><div class="menu">${Array.from(people,([name,p])=>`<button onclick="selectPerson(${arg(name)})">${esc(name)} — ${ids.length?Math.round(ids.filter(id=>p[id]).length/ids.length*100):0}%</button>`).join('')}</div>`;});}
+async function trainer(){await run(async()=>{await loadTrainingContent();const rows=await request('boh_training?select=team_member&order=team_member.asc'),names=[...new Set(rows.map(x=>x.team_member).filter(Boolean))];currentPage={group:'trainer'};app.innerHTML=`<h1>Trainer View</h1><p class="sub">Select a team member to record shared completion.</p><select class="trainer-name" onchange="run(()=>setTrainee(this.value))"><option value="">Select team member</option>${names.map(name=>`<option value="${esc(name)}" ${name===trainee?'selected':''}>${esc(name)}</option>`).join('')}</select><div class="menu">${Object.keys(STATIONS).map(k=>`<button onclick="station(${arg(k)})">${esc(pageTitle('station',k))}</button>`).join('')}<button onclick="closingMenu()">Closing</button><button onclick="progressView()">View Progress</button></div>`;});}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>({learn:home,progress:progressView,trainer}[b.dataset.nav])());document.getElementById('homeBtn').onclick=home;home();loadTrainingContent().then(()=>{if(currentPage.group==='home')home();}).catch(()=>{});
