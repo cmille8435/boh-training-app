@@ -19,6 +19,7 @@ function home(){
  ${Object.entries(STATIONS).map(([k,v])=>`<button onclick="station('${k}')">${v.title}</button>`).join('')}
  <button onclick="closingMenu()">Closing</button>
  <button onclick="progressView()">My Progress</button>
+ <button onclick="addTeamMember(prompt('Enter team member name'))">Add Team Member</button>
  </div>`;
 }
 
