@@ -21,9 +21,23 @@ function home(){
  <button onclick="progressView()">My Progress</button>
  <button onclick="addTeamMember(prompt('Enter team member name'))">Add Team Member</button>
  <button onclick="allProgress()">All Progress</button>
+ <button onclick="editTraining()">Edit Training</button>
+ 
  </div>`;
 }
-
+function editTraining(){
+ app.innerHTML=`<h1>Edit Training</h1>
+ <input id="editTitle" class="trainer-name" placeholder="Title">
+ <input id="editLink" class="trainer-name" placeholder="Link">
+ <button onclick="saveTrainingEdit()">Save Training Item</button>`;
+}
+async function saveTrainingEdit(){
+ const title=document.getElementById('editTitle').value.trim();
+ const link=document.getElementById('editLink').value.trim();
+ if(!title||!link){alert('Add a title and link first.');return;}
+ await addTrainingItem({section:'welcome',category:'general',title:title,description:'',link_url:link,item_type:'link',sort_order:999});
+ alert('Training link saved!');
+}
 function welcome(){
  app.innerHTML=`<h1>Welcome & Restaurant Tour</h1><p class="sub">Complete these basics before station training.</p>
  <div class="section"><h2>Welcome</h2>
