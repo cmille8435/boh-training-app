@@ -132,8 +132,7 @@ async function editCategoryItem(id){
   })
  });
 
- await editTraining();
-}
+ 
 
 async function deleteCategoryItem(id){
  if(!confirm('Delete this training item?'))return;
@@ -145,35 +144,12 @@ async function deleteCategoryItem(id){
   headers:h
  });
 
- await editTraining();
-}
  
- const added=trainingContent.filter(
-  x=>x.section==='welcome' &&
-  x.category==='welcome' &&
-  x.item_type!=='category'
- );
+ 
 
- app.innerHTML=`<h1>Welcome & Restaurant Tour</h1>
- <p class="sub">Complete these basics before station training.</p>
+ 
 
- ${added.length?`
-  <div class="section">
-   <h2>Start Here</h2>
-   ${added.map(x=>`
-    <div class="card">
-     <h2>${esc(x.title)}</h2>
-     ${x.description?`<p>${esc(x.description)}</p>`:''}
-     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
-    </div>
-   `).join('')}
-  </div>
- `:''}
-
- <div class="section"><h2>Welcome</h2>
- ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
- </div>`;
-}
+ 
 async function welcome(){
  await loadTrainingContent();
 
@@ -204,7 +180,6 @@ async function welcome(){
   ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
  </div>`;
 }
-
 async function station(slug){
  let s=STATIONS[slug];
  await loadTrainingContent();
