@@ -140,13 +140,9 @@ async function deleteCategoryItem(id){
  app.innerHTML=`<h1>Welcome & Restaurant Tour</h1>
  <p class="sub">Complete these basics before station training.</p>
 
- <div class="section"><h2>Welcome</h2>
- ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
- </div>
-
  ${added.length?`
   <div class="section">
-   <h2>Added Training</h2>
+   <h2>Start Here</h2>
    ${added.map(x=>`
     <div class="card">
      <h2>${esc(x.title)}</h2>
@@ -155,7 +151,11 @@ async function deleteCategoryItem(id){
     </div>
    `).join('')}
   </div>
- `:''}`;
+ `:''}
+
+ <div class="section"><h2>Welcome</h2>
+ ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
+ </div>`;
 }
 async function station(slug){
  let s=STATIONS[slug];
