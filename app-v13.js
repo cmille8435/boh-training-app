@@ -132,7 +132,8 @@ async function editCategoryItem(id){
   })
  });
 
- 
+ await editTraining();
+}
 
 async function deleteCategoryItem(id){
  if(!confirm('Delete this training item?'))return;
@@ -144,12 +145,9 @@ async function deleteCategoryItem(id){
   headers:h
  });
 
- 
- 
+ await editTraining();
+}
 
- 
-
- 
 async function welcome(){
  await loadTrainingContent();
 
