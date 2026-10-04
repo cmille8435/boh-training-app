@@ -63,10 +63,10 @@ function progressView(){
 
 function prog(title,n,t,p){return `<div class="card"><h2>${title}</h2><div class="progressbar"><span style="width:${p}%"></span></div><div class="small">${n} of ${t} complete · ${p}%</div></div>`;}
 async function loadTeamMembers(){const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};const r=await fetch(`${SUPABASE_URL}/rest/v1/boh_training?select=team_member&order=team_member.asc`,{headers:h});const rows=await r.json();return [...new Set(rows.map(x=>x.team_member).filter(Boolean))];}
-async fuction  trainer(){
+async function  trainer(){
 const teamMembers=await loadTeamMembers(); 
  app.innerHTML=`<h1>Trainer View</h1><p class="sub">Enter the team member name, then use the same station checklists to record progress on this device.</p>
-<select class="trainer-name" onchange="setTrainee(this.value)"><option value="">Select team member</option>${teamMembers.map(name=>`<option value="${name.replaceAll('"','&quot;')}" ${name===trainee?'selected':''}>${name}</option>`).join('')}</select>  value="${trainee.replaceAll('"','&quot;')}" placeholder="Team member name" onchange="setTrainee(this.value)">
+<select class="trainer-name" onchange="setTrainee(this.value)"><option value="">Select team member</option>${teamMembers.map(name=>`<option value="${name.replaceAll('"','&quot;')}" ${name===trainee?'selected':''}>${name}</option>`).join('')}</select>
  <div class="menu">${Object.entries(STATIONS).map(([k,v])=>`<button onclick="station('${k}')">${v.title}</button>`).join('')}
  <button onclick="closingMenu()">Closing</button><button onclick="progressView()">View Progress</button></div>
  <p class="note"><b>Prototype note:</b> progress currently saves only on this phone/browser. Shared progress across multiple trainers will require a connected database in the next version.</p>`;
