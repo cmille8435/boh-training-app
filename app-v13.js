@@ -25,19 +25,111 @@ function home(){
  
  </div>`;
 }
-function editTraining(){
+function esc(s){
+ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+}
+
+async function editTraining(){
+ await loadTrainingContent();
+
+ const cats=[
+  ['welcome','welcome','Welcome'],
+  ['station','primary','Primary'],
+  ['station','secondary','Secondary'],
+  ['station','machines','Machines'],
+  ['station','breading','Breading'],
+  ['station','fries','Fries'],
+  ['closing','closing','Closing']
+ ];
+
  app.innerHTML=`<h1>Edit Training</h1>
- <input id="editTitle" class="trainer-name" placeholder="Title">
- <input id="editLink" class="trainer-name" placeholder="Link">
- <button onclick="saveTrainingEdit()">Save Training Item</button>`;
+ <p class="sub">Choose a category, then add, edit, or delete training items and links.</p>
+ <select id="editCategory" class="trainer-name" onchange="renderEditCategory()">
+ ${cats.map(c=>`<option value="${c[0]}|${c[1]}">${c[2]}</option>`).join('')}
+ </select>
+ <div id="editItems"></div>`;
+
+ renderEditCategory();
 }
-async function saveTrainingEdit(){
- const title=document.getElementById('editTitle').value.trim();
- const link=document.getElementById('editLink').value.trim();
- if(!title||!link){alert('Add a title and link first.');return;}
- await addTrainingItem({section:'welcome',category:'general',title:title,description:'',link_url:link,item_type:'link',sort_order:999});
- alert('Training link saved!');
+
+function renderEditCategory(){
+ const [section,category]=document.getElementById('editCategory').value.split('|');
+ const items=trainingContent.filter(x=>x.section===section&&x.category===category&&x.item_type!=='category');
+
+ document.getElementById('editItems').innerHTML=`
+ <button onclick="addCategoryItem('${section}','${category}')">Add New Item</button>
+ ${items.length ? items.map(x=>`
+  <div class="card">
+   <h2>${esc(x.title)}</h2>
+   ${x.description?`<p>${esc(x.description)}</p>`:''}
+   ${x.link_url?`<p>Link attached</p>`:''}
+   <button onclick="editCategoryItem(${x.id})">Edit</button>
+   <button onclick="deleteCategoryItem(${x.id})">Delete</button>
+  </div>`).join('') : '<p class="note">No added items yet.</p>'}`;
 }
+
+async function addCategoryItem(section,category){
+ const title=prompt('Training item title');
+ if(!title)return;
+ const description=prompt('Instructions or description')||'';
+ const link=prompt('Link (optional)')||'';
+
+ await addTrainingItem({
+  section,
+  category,
+  title:title.trim(),
+  description:description.trim(),
+  link_url:link.trim(),
+  item_type:link.trim()?'link':'item',
+  sort_order:999
+ });
+
+ await editTraining();
+}
+
+async function editCategoryItem(id){
+ const item=trainingContent.find(x=>x.id===id);
+ if(!item)return;
+
+ const title=prompt('Title',item.title||'');
+ if(title===null)return;
+
+ const description=prompt('Instructions or description',item.description||'');
+ if(description===null)return;
+
+ const link=prompt('Link (optional)',item.link_url||'');
+ if(link===null)return;
+
+ const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
+
+ await fetch(`${SUPABASE_URL}/rest/v1/training_content?id=eq.${id}`,{
+  method:'PATCH',
+  headers:h,
+  body:JSON.stringify({
+   title:title.trim(),
+   description:description.trim(),
+   link_url:link.trim(),
+   item_type:link.trim()?'link':'item'
+  })
+ });
+
+ await editTraining();
+}
+
+async function deleteCategoryItem(id){
+ if(!confirm('Delete this training item?'))return;
+
+ const h={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+
+ await fetch(`${SUPABASE_URL}/rest/v1/training_content?id=eq.${id}`,{
+  method:'DELETE',
+  headers:h
+ });
+
+ await editTraining();
+}
+ 
+
 function welcome(){
  app.innerHTML=`<h1>Welcome & Restaurant Tour</h1><p class="sub">Complete these basics before station training.</p>
  <div class="section"><h2>Welcome</h2>
