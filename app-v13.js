@@ -147,9 +147,7 @@ async function deleteCategoryItem(id){
 
  await editTraining();
 }
- async function welcome(){
- await loadTrainingContent();
-
+ 
  const added=trainingContent.filter(
   x=>x.section==='welcome' &&
   x.category==='welcome' &&
@@ -176,9 +174,39 @@ async function deleteCategoryItem(id){
  ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
  </div>`;
 }
+async function welcome(){
+ await loadTrainingContent();
+
+ const added=trainingContent.filter(
+  x=>x.section==='welcome' &&
+  x.category==='welcome' &&
+  x.item_type!=='category'
+ );
+
+ app.innerHTML=`<h1>Welcome & Restaurant Tour</h1>
+ <p class="sub">Complete these basics before station training.</p>
+
+ ${added.length?`
+  <div class="section">
+   <h2>Start Here</h2>
+   ${added.map(x=>`
+    <div class="card">
+     <h2>${esc(x.title)}</h2>
+     ${x.description?`<p>${esc(x.description)}</p>`:''}
+     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
+    </div>
+   `).join('')}
+  </div>
+ `:''}
+
+ <div class="section">
+  <h2>Welcome</h2>
+  ${['Clock In','Restaurant Tour'].map(x=>check('welcome','welcome',x)).join('')}
+ </div>`;
+}
+
 async function station(slug){
  let s=STATIONS[slug];
-
  await loadTrainingContent();
 
  app.innerHTML=`<h1>${s.title}</h1>
@@ -211,42 +239,67 @@ async function station(slug){
 }
 
 function closingMenu(){
- app.innerHTML=`<h1>Closing</h1><p class="sub">Choose a closing area.</p><div class="menu">
- ${Object.entries(CLOSING).map(([k,v])=>`<button onclick="closingPage('${k}')">${v.title.replace('Closing ','')}</button>`).join('')}</div>`;
+ app.innerHTML=`<h1>Closing</h1>
+ <p class="sub">Choose a closing area.</p>
+ <div class="menu">
+ ${Object.entries(CLOSING).map(([k,v])=>`<button onclick="closingPage('${k}')">${v.title.replace('Closing ','')}</button>`).join('')}
+ </div>`;
 }
+
 async function closingPage(slug){
  let s=CLOSING[slug];
-
  await loadTrainingContent();
-
- const added=trainingContent.filter(
-  x=>x.section==='closing' &&
-  x.category==='closing' &&
-  x.item_type!=='category'
- );
 
  app.innerHTML=`<h1>${s.title}</h1>
  <p class="sub">Quick-read closing guide.</p>
 
- ${s.sections.map(([title,items])=>`
-  <div class="section">
-   <h2>${title}</h2>
-   ${items.map(x=>check('closing',slug,x)).join('')}
-  </div>
- `).join('')}
+ ${s.sections.map(([title,items])=>{
+   const subsectionKey=`${slug}::${title}`;
 
- ${added.length?`
-  <div class="section">
-   <h2>Added Training</h2>
-   ${added.map(x=>`
-    <div class="card">
-     <h2>${esc(x.title)}</h2>
-     ${x.description?`<p>${esc(x.description)}</p>`:''}
-     ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
-    </div>
-   `).join('')}
-  </div>
- `:''}`;
+   const added=trainingContent.filter(
+    x=>x.section==='closing' &&
+    x.category==='closing' &&
+    x.subsection===subsectionKey &&
+    x.item_type!=='category'
+   );
+
+   return `<div class="section">
+    <h2>${title}</h2>
+
+    ${items.map(x=>check('closing',slug,x)).join('')}
+
+    ${added.map(x=>`
+     <div class="card">
+      <h2>${esc(x.title)}</h2>
+      ${x.description?`<p>${esc(x.description)}</p>`:''}
+      ${x.link_url?`<a href="${esc(x.link_url)}" target="_blank" rel="noopener">Open Link</a>`:''}
+     </div>
+    `).join('')}
+
+    <button onclick="addClosingSubsectionItem('${slug}','${title.replaceAll("'","\\'")}')">Add Item</button>
+   </div>`;
+ }).join('')}`;
+}
+
+async function addClosingSubsectionItem(slug,subsection){
+ const title=prompt('Training item title');
+ if(!title)return;
+
+ const description=prompt('Instructions or description')||'';
+ const link=prompt('Link (optional)')||'';
+
+ await addTrainingItem({
+  section:'closing',
+  category:'closing',
+  subsection:`${slug}::${subsection}`,
+  title:title.trim(),
+  description:description.trim(),
+  link_url:link.trim(),
+  item_type:link.trim()?'link':'item',
+  sort_order:999
+ });
+
+ await closingPage(slug);
 }
 function check(group,slug,item){
  let id=idFor(group,slug,item), checked=progress[id]?'checked':'';
