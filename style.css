@@ -66,3 +66,21 @@ nav button:active{background:#fff0f2;color:var(--red)}
 
 .overall-status[data-status="in-training"]{background:#fff3cd;color:#664d03;border-color:#d6ad39;font-weight:700}
 .overall-status[data-status="trained"]{background:#dcfce7;color:#166534;border-color:#69b987;font-weight:700}
+
+/* Consistent spacing and typography across training and progress cards. */
+:root{--shadow:0 3px 12px rgba(32,38,48,.045)}
+.menu button{letter-spacing:-.01em}
+.card h2{font-weight:750}
+.section-heading{padding-bottom:10px;border-bottom:1px solid var(--line)}
+.section-heading h2{line-height:1.4}
+.training-item .edit-actions{margin:0 0 12px 35px}
+.training-item:last-of-type .edit-actions{margin-bottom:8px}
+.checkrow span{font-weight:600}
+.item-description{font-weight:400}
+.card>.field{margin:0 0 10px}
+.card>.field .trainer-name{margin:8px 0 0}
+.card>p[role="status"]{min-height:20px;margin:0 0 8px}
+.card>.menu{margin-top:4px}
+.card>.menu button{font-size:15px;min-height:48px;padding:12px 14px}
+.overall-status{border-radius:12px}
+@media(prefers-reduced-motion:reduce){.menu button{transition:none}}
