@@ -60,3 +60,6 @@ nav button:active{background:#fff0f2;color:var(--red)}
 @media(min-width:640px){header{padding-left:max(28px,calc((100vw - 760px)/2));padding-right:max(28px,calc((100vw - 760px)/2))}main{padding-top:36px}.menu{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.menu button.primary{grid-column:1/-1;min-height:64px}.section{padding:24px}}
 @media(max-width:360px){main{padding-left:14px;padding-right:14px}.section{padding:16px}.menu button{padding:14px 16px;font-size:16px}.brand{font-size:12px}header{padding-left:14px;padding-right:14px}}
 @media(hover:hover){.menu button:hover{border-color:#c0c7d1;box-shadow:0 6px 20px rgba(32,38,48,.08)}.menu button.primary:hover{background:#b30e29;border-color:#b30e29}.edit-actions button:hover,.section-heading button:hover,.add-item:hover{border-color:#bcc5d0}nav button:hover{background:#fff0f2;color:var(--red)}}
+
+/* Compact Home navigation on phones. */
+@media(max-width:639px){.menu.home-menu{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.home-menu button{min-width:0;min-height:54px;padding:12px;font-size:15px;gap:8px;border-radius:14px}.home-menu button.primary{grid-column:1/-1;min-height:56px}.home-menu button::after{font-size:22px}}
