@@ -1,0 +1,9 @@
+{
+  "name": "FOH Training",
+  "short_name": "FOH Training",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f8",
+  "theme_color": "#c8102e"
+}
