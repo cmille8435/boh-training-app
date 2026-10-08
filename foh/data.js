@@ -109,6 +109,17 @@ const STATIONS = {
       ]
     ]
   },
+  "winning-hearts-everyday": {
+    "title": "Winning Hearts Everyday",
+    "sections": [
+      [
+        "Second-Mile Service",
+        [
+          "Understands the second-mile service portion of Winning Hearts Everyday"
+        ]
+      ]
+    ]
+  },
   "basic": {
     "title": "FOH Basic Training",
     "sections": [
