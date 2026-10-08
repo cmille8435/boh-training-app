@@ -84,3 +84,15 @@ nav button:active{background:#fff0f2;color:var(--red)}
 .card>.menu button{font-size:15px;min-height:48px;padding:12px 14px}
 .overall-status{border-radius:12px}
 @media(prefers-reduced-motion:reduce){.menu button{transition:none}}
+
+/* Reusable FSA walkthrough checklists, separate from training progress. */
+.fsa-checklist{margin:12px 0 20px;font-size:14px;line-height:1.6}
+.fsa-help{color:var(--muted);margin:0 0 10px}
+.fsa-check-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+.fsa-check-actions button{border:1px solid var(--line);border-radius:10px;background:#f5f6f8;color:#44505f;padding:10px 14px;min-height:44px;font-size:13px;font-weight:650}
+.fsa-check-text{white-space:pre-wrap;margin:14px 0 8px;overflow-wrap:anywhere}
+.fsa-check-heading{font-weight:750;color:var(--ink);margin-top:24px}
+.fsa-checkrow{display:flex;align-items:flex-start;gap:12px;padding:10px 0;cursor:pointer}
+.fsa-checkrow input{width:22px;height:22px;margin:1px 0 0;flex-shrink:0;accent-color:var(--red);cursor:pointer}
+.fsa-checkrow span{flex:1;min-width:0;overflow-wrap:anywhere}
+.fsa-checkrow input:checked+span{color:#166534}
