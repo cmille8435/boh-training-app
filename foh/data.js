@@ -234,3 +234,38 @@ const CLOSING = {
     ]
   }
 };
+
+// FOH service assessments, adapted from the current OpsHub questions.
+Object.assign(FOH_DETAILS, {
+  "RSA Core 4": "CORE 4 — Guest interactions\n• 8.01.01: Make natural, respectful eye contact with guests.\n• 8.01.02: Share a genuine smile throughout the interaction.\n• 8.01.03: Speak with a warm, friendly tone.\n• 8.01.04: Respond “My pleasure” when a guest thanks you.\n• 8.01.05: Demonstrate all four elements during each guest interaction.\nCoach consistency: look for these behaviors throughout the interaction, rather than only once.",
+  "RSA HEARD Model": "HEARD — Guest recovery\n08.08.00: Practice with a teammate acting as a guest whose order has a missing item, or observe a real recovery interaction.\n• 08.08.01 — Hear: Focus on the guest, listen closely, and clarify the issue.\n• 08.08.02 — Empathize: Show caring body language and acknowledge the guest’s concern.\n• 08.08.03 — Apologize: Say “I’m sorry” and stay focused on the issue.\n• 08.08.04 — Resolve: Thank the guest, take ownership, and solve the problem.\n• 08.08.05 — Delight: Make the recovery personal, proactive, and generous.",
+  "RSA: Carry Out Service Behaviors": "CARRY OUT — Order taking\nObserve one complete order-taking interaction and one complete meal-fulfillment interaction. Use the card to coach a consistent guest experience.\n• 8.07.09f: Give the guest a warm welcome.\n• 8.07.10f: Use the guest’s name in a sentence.\n• 8.01.06f: Speak in a friendly tone.\n• 8.01.07f: Make eye contact.\n• 8.01.08f: Share a smile.\n• 8.01.09f: Say “My pleasure” when thanked.\n• 8.02.08f: Repeat the entire order before tendering. Refer to meals by product name instead of meal number.\n• 8.06.08f: Give clear verbal directions about the next step and where to receive the order.\n• 8.06.20f: Anticipate guest needs and serve proactively.\n\nCARRY OUT — Meal fulfillment\n• 8.07.09g: Greet the guest warmly at handoff.\n• 8.02.09g: Confirm the order by stating a menu item.\n• 8.07.12g: Use the guest’s name in a sentence.\n• 8.01.06g: Speak in a friendly tone.\n• 8.01.07g: Make eye contact.\n• 8.01.08g: Share a smile.\n• 8.01.09g: Say “My pleasure” when thanked.\n• 8.06.08g: Give clear verbal directions when the guest needs them.\n• 8.07.11g: Offer a friendly, fond farewell.\n• 8.06.20g: Serve proactively throughout handoff.",
+  "Proactive": "PROACTIVE — Anticipate guest needs\n• 8.06.03: Anticipate needs before the guest has to ask for help.\n• 8.06.04: Notice nonverbal signs that a guest needs assistance.\n• 8.06.05: Ensure the guest has everything needed to enjoy the meal.\n• 8.06.08: Give clear directions about the next step.\n• 8.06.09: Confirm the meal when handing it out.\n• 8.06.10: Offer a choice of dipping sauces and condiments.\n• 8.06.11: Understand the mobile app process, or obtain help from a knowledgeable teammate.\n• 8.06.12: If the meal is not ready, clearly explain where it will be delivered.\n• 8.06.14: Locate and provide accurate nutrition information when requested.\n• 8.06.16: Make the third-party delivery pickup route clear and easy to follow.\n• 8.06.17: Clearly communicate the carry-out order pickup location.\n• 8.06.18: Make the mobile carry-out pickup area easy to find.\nDrive-Thru and dining-area observations from the source form are excluded. Assess only pickup services used at this restaurant.",
+  "Generous": "GENEROUS — Personal guest care\n• 8.05.01: Engage the guest beyond the transaction, such as asking how their day is going.\n• 8.05.02: Look for an appropriate opportunity to surprise and delight a guest.\n• 8.05.03: Use personal, generous language, such as “My pleasure” or “What else may I do for you?”\n• 8.05.04: Demonstrate at least one generous behavior in the interaction.\n• 8.05.05: Offer condiments and a choice of dipping sauces when appropriate.\n• 8.05.06: Make a personal connection without delaying order taking.\n• 8.05.07: Offer to help carry a large order to the guest’s car, when applicable.\nFor the large-order observation, the source allows N/A when no large order is observed.\n• 8.05.08: Thank the guest sincerely.\n• 8.05.09: Use professional, courteous language consistently.\n• 8.05.10: Immediately acknowledge a guest approaching the counter.",
+  "RSA Sauce and Condiment Excellence": "SAUCE & CONDIMENT EXCELLENCE — Order taker\nObserve one to three interactions at order taking and at bagging/stuffing. Reuse this card for each observation.\n• 08.02.01: Ask for the guest’s preferred sauces and condiments at least once. Include dressing for salads and wraps.\nThe source allows N/A when the guest requests them without prompting or when assessing a mobile order.\n• 08.02.02: Ask for the exact quantity of each requested sauce, condiment, or dressing.\n• 08.02.03: Enter the correct type and quantity in the POS.\n• 08.02.04: At final order confirmation, repeat both the sauce/condiment types and quantities before tendering.\n\nSAUCE & CONDIMENT EXCELLENCE — Bagging/stuffing\n• 08.02.07: Include the sauce and condiment types and quantities shown on the KPS or receipt.\nIf none are requested, this source observation is N/A.\n• 08.02.08: Place packets neatly with the order in the bag or on the tray.\n• 08.02.09: Check that packets are clean and undamaged.\n• 08.02.10: When a guest asks for extra sauce, ask for a specific quantity instead of taking a handful.\nIf no extra sauce is requested, this source observation is N/A.",
+  "RSA Accuracy": "ACCURACY — Order confirmation and fulfillment\n• 8.02.01: Confirm the guest’s order before completing the transaction.\n• 8.02.02: Randomly check assembled orders for the correct products and customizations.\n• 8.02.04: Provide a complete, ready-to-eat meal with the required sauces, condiments, napkins, and utensils.\n• 8.02.05: If the meal is not ready, deliver it to the location the guest was told.\n• 8.02.07: Answer menu questions accurately and clearly; ask a knowledgeable teammate for help when needed.\nDrive-Thru speed and dine-in table-marker questions from the source form are excluded."
+});
+STATIONS["rsa-assessment"].sections = [
+  [
+    "Guest Service Assessments",
+    [
+      "RSA Core 4",
+      "RSA HEARD Model",
+      "RSA: Carry Out Service Behaviors",
+      "Proactive",
+      "Generous",
+      "RSA Sauce and Condiment Excellence",
+      "RSA Accuracy"
+    ]
+  ],
+  [
+    "Food Quality Assessments",
+    [
+      "Regular Chicken Sandwich",
+      "Grilled Chicken Sandwich",
+      "8-Count Regular Nuggets",
+      "5-Count Grilled Nuggets",
+      "Waffle Fries"
+    ]
+  ]
+];
