@@ -130,7 +130,7 @@ async function prepareItemPhotos(input){
   for(let i=0;i<files.length;i++){status.textContent='Preparing photo '+(i+1)+' of '+files.length+'…';try{const p=await preparePhoto(files[i]);p.token=globalThis.crypto?.randomUUID?.()||('photo-'+Date.now()+'-'+Math.random().toString(36).slice(2));e.pendingPhotos.push(p);}catch(error){errors.push(error.message);}renderPhotoEditor();}
   status.textContent=errors.length?errors.join(' '):'Photos ready. Tap Save Changes to share them.';
   if(errors.length&&!e.pendingPhotos.length)alert(errors.join('\n'));
- }finally{e.photosBusy=false;save.disabled=add.disabled=cancel.disabled=false;input.value='';}
+ }finally{e.photosBusy=false;save.disabled=add.disabled=cancel.disabled=false;input.value='';if(editing===e)renderPhotoEditor();}
 }
 async function storePhotoRecord(body){
  const existing=await readUploadedPhotoRows('training_content?select=id&title=eq.'+encodeURIComponent(body.title)+'&section=eq.'+encodeURIComponent(body.section)+'&category=eq.'+encodeURIComponent(body.category)+'&subsection=eq.'+encodeURIComponent(body.subsection)+'&limit=1');
