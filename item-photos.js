@@ -24,7 +24,7 @@ async function deleteUploadedPhoto(id){
  const dialog=document.getElementById('uploadedPhotoDialog');if(dialog?.open)dialog.close();
  if(editing&&document.getElementById('photoEditor'))renderPhotoEditor();else await refreshPage();
 }
-function photoEditorHtml(){return '<section class="photo-editor"><h2>Photos (optional)</h2><label class="ghost" style="position:relative;display:inline-block;overflow:hidden;cursor:pointer">Add Photos<input id="addPhotosButton" type="file" accept="image/*" multiple aria-label="Add Photos" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer" onchange="run(()=>prepareItemPhotos(this))"></label><p class="small">Choose photos from your phone, then tap Save Changes.</p><p id="photoStatus" class="small" role="status"></p><div id="photoEditor"></div></section>';}
+function photoEditorHtml(){return '<section class="photo-editor"><h2>Photos (optional)</h2><input id="addPhotosButton" type="file" accept="image/*" multiple aria-label="Add Photos" style="display:block;position:static;opacity:1;visibility:visible;width:100%;height:auto;min-height:48px;padding:12px 0;font-size:16px;pointer-events:auto" onchange="run(()=>prepareItemPhotos(this))"><p class="small">Choose photos from your phone, then tap Save Changes.</p><p id="photoStatus" class="small" role="status"></p><div id="photoEditor"></div></section>';}
 function renderPhotoEditor(){
  const target=document.getElementById('photoEditor');if(!target||!editing)return;
  const saved=uploadedPhotoRows.filter(p=>p.key===editing.key);
