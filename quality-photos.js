@@ -31,7 +31,7 @@ const QUALITY_ITEM_PHOTOS={
 };
 function qualityPhotoIds(item){
  if(item.key.startsWith('station:breading:'))return [];
- if(item.key==='station:fries:Know step-by-step how to drop fries, shake, hit the timer, cook, bring up the fries, shake, and dump fries into the fry dispenser')return [];
+ if(item.key.startsWith('station:fries:')&&item.key!=='station:fries:Prepare waffle fries for orders')return [];
  if(QUALITY_ITEM_PHOTOS[item.key])return QUALITY_ITEM_PHOTOS[item.key];
  const title=String(item.original||item.title||'').toLowerCase();
  if(/breakfast|cookie|biscuit|hash brown|chick.n.minis/.test(title))return [];
