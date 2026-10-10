@@ -25,7 +25,38 @@ function allIds(){return [...Object.keys(STATIONS).flatMap(slug=>pageItems('stat
 function safeLink(url){try{const u=new URL(url);return ['https:','http:'].includes(u.protocol)?u.href:'';}catch{return '';}}
 function controls(group,slug){return `<div class="edit-actions"><button onclick="run(()=>editPageTitle(${arg(group)},${arg(slug)}))">Edit page title</button><button onclick="editTraining()">Edit Training</button></div>`;}
 function home(){currentPage={group:'home'};app.innerHTML=`<h1>BOH Training</h1><p class="sub">Training reference and shared progress tracker.</p><div class="menu home-menu"><button class="primary" onclick="welcome()">${esc(pageTitle('welcome','welcome'))}</button>${Object.keys(STATIONS).map(k=>`<button onclick="station(${arg(k)})">${esc(pageTitle('station',k))}</button>`).join('')}<button onclick="closingMenu()">Closing</button><button onclick="progressView()">My Progress</button><button onclick="run(()=>addTeamMember(prompt('Enter team member name')))">Add Team Member</button><button onclick="allProgress()">All Progress</button><button onclick="editTraining()">Edit Training</button></div>`;}
-async function openPage(group,slug){await run(async()=>{await loadTrainingContent();await loadUploadedPhotos(group,slug);currentPage={group,slug};renderPage(group,slug);});}
+let categoryLoadSequence=0;
+async function openPage(group,slug){
+ await run(async()=>{
+  const sequence=++categoryLoadSequence;
+  const changed=currentPage.group!==group||currentPage.slug!==slug;
+  currentPage={group,slug};
+  if(changed)uploadedPhotoRows=[];
+  const active=()=>sequence===categoryLoadSequence&&currentPage.group===group&&currentPage.slug===slug&&!document.getElementById('itemForm');
+  const status=message=>{
+   if(!active())return;
+   let target=document.getElementById('categoryLoadStatus');
+   if(!target){app.insertAdjacentHTML('afterbegin','<p id="categoryLoadStatus" class="small" role="status"></p>');target=document.getElementById('categoryLoadStatus');}
+   target.textContent=message;
+  };
+  // Open cached training immediately; saved photos must not block navigation.
+  renderPage(group,slug);
+  status('Refreshing training…');
+  try{
+   await loadTrainingContent();
+   if(!active())return;
+   renderPage(group,slug);status('Loading added photos…');
+   await loadUploadedPhotos(group,slug);
+   if(active())renderPage(group,slug);
+  }catch(error){
+   if(active()){
+    status('Could not refresh everything. '+error.message);
+    const target=document.getElementById('categoryLoadStatus');
+    target.insertAdjacentHTML('beforeend',' <button type="button" class="ghost" onclick="openPage('+arg(group)+','+arg(slug)+')">Retry</button>');
+   }
+  }
+ });
+}
 function welcome(){return openPage('welcome','welcome');}
 function station(slug){return openPage('station',slug);}
 function closingPage(slug){return openPage('closing',slug);}
