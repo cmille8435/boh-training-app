@@ -64,12 +64,47 @@ async function deleteUploadedPhoto(id){
  const dialog=document.getElementById('uploadedPhotoDialog');if(dialog?.open)dialog.close();
  if(editing&&document.getElementById('photoEditor'))renderPhotoEditor();else await refreshPage();
 }
-function photoEditorHtml(){return '<section class="photo-editor"><h2>Photos (optional)</h2><input id="addPhotosButton" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple aria-label="Add Photos" style="display:block;position:static;opacity:1;visibility:visible;width:100%;height:auto;min-height:48px;padding:12px 0;font-size:16px;pointer-events:auto" onchange="prepareItemPhotos(this).catch(report)"><p class="small">Choose photos from your phone, then tap Save Changes.</p><p id="photoStatus" class="small" role="status"></p><div id="photoEditor"></div></section>';}
+function photoEditorHtml(){return '<section class="photo-editor"><h2>Photos (optional)</h2><input id="addPhotosButton" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple aria-label="Add Photos" style="display:block;position:static;opacity:1;visibility:visible;width:100%;height:auto;min-height:48px;padding:12px 0;font-size:16px;pointer-events:auto" onchange="prepareItemPhotos(this).catch(report)"><p class="small">Choose photos, use Move Up or Move Down to arrange them, then tap Save Changes.</p><p id="photoStatus" class="small" role="status"></p><div id="photoEditor"></div></section>';}
+function orderedEditorPhotos(){
+ if(!editing)return [];
+ const saved=uploadedPhotoRows.filter(p=>p.key===editing.key).map(p=>({orderKey:'saved:'+p.id,kind:'saved',photo:p}));
+ const pending=(editing.pendingPhotos||[]).map((p,index)=>({orderKey:'pending:'+p.token,kind:'pending',photo:p,index}));
+ const entries=[...saved,...pending],byKey=new Map(entries.map(p=>[p.orderKey,p]));
+ const order=(editing.photoOrder||[]).filter(key=>byKey.has(key));
+ for(const entry of entries)if(!order.includes(entry.orderKey))order.push(entry.orderKey);
+ editing.photoOrder=order;
+ return order.map(key=>byKey.get(key));
+}
+function moveEditorPhoto(index,direction){
+ if(!editing||editing.photosBusy)return;
+ const photos=orderedEditorPhotos(),to=index+direction;
+ if(index<0||index>=photos.length||to<0||to>=photos.length)return;
+ const order=editing.photoOrder;
+ [order[index],order[to]]=[order[to],order[index]];
+ editing.photoOrderChanged=true;
+ renderPhotoEditor();
+ const status=document.getElementById('photoStatus');
+ if(status)status.textContent='Photo order updated. Tap Save Changes to share it.';
+}
 function renderPhotoEditor(){
  const target=document.getElementById('photoEditor');if(!target||!editing)return;
- const saved=uploadedPhotoRows.filter(p=>p.key===editing.key);
- target.innerHTML='<div class="quality-photo-grid">'+saved.map(p=>'<div class="quality-photo-entry"><img class="photo-editor-preview" src="'+esc(p.src)+'" alt="'+esc(p.name||'Photo')+'"><button type="button" class="ghost" onclick="run(()=>deleteUploadedPhoto('+arg(p.id)+'))">Delete photo</button></div>').join('')+(editing.pendingPhotos||[]).map((p,i)=>'<div class="quality-photo-entry"><img class="photo-editor-preview" src="'+esc(p.src)+'" alt="'+esc(p.name)+'"><span class="small">Ready to save</span><button type="button" class="ghost" onclick="removePendingPhoto('+i+')">Remove</button></div>').join('')+'</div>';
+ const photos=orderedEditorPhotos();
+ target.innerHTML='<div class="quality-photo-grid">'+photos.map((entry,i)=>{
+  const p=entry.photo,busy=editing.photosBusy;
+  const remove=entry.kind==='saved'?'<button type="button" class="ghost" '+(busy?'disabled':'')+' onclick="run(()=>deleteUploadedPhoto('+arg(p.id)+'))">Delete photo</button>':'<button type="button" class="ghost" '+(busy?'disabled':'')+' onclick="removePendingPhoto('+entry.index+')">Remove</button>';
+  return '<div class="quality-photo-entry"><img class="photo-editor-preview" src="'+esc(p.src)+'" alt="'+esc(p.name||'Photo')+'"><span class="small">Photo '+(i+1)+(entry.kind==='pending'?' — Ready to save':'')+'</span><div style="display:flex;gap:6px"><button type="button" class="ghost" style="flex:1;font-size:13px" '+(busy||i===0?'disabled':'')+' onclick="moveEditorPhoto('+i+',-1)">↑ Move Up</button><button type="button" class="ghost" style="flex:1;font-size:13px" '+(busy||i===photos.length-1?'disabled':'')+' onclick="moveEditorPhoto('+i+',1)">↓ Move Down</button></div>'+remove+'</div>';
+ }).join('')+'</div>';
 }
+async function saveEditorPhotoOrder(e,key){
+ if(!e.photoOrderChanged)return;
+ const ids=(e.photoOrder||[]).filter(value=>value.startsWith('saved:')).map(value=>value.slice(6));
+ const status=document.getElementById('editorStatus');if(status)status.textContent='Saving photo order…';
+ for(let i=0;i<ids.length;i++){
+  await request('training_content?id=eq.'+encodeURIComponent(ids[i])+'&subsection=eq.'+encodeURIComponent(key)+'&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*'),{method:'PATCH',body:JSON.stringify({sort_order:i+1})});
+ }
+ e.photoOrderChanged=false;
+}
+
 function removePendingPhoto(index){if(editing?.photosBusy)return;editing.pendingPhotos.splice(index,1);renderPhotoEditor();}
 function readPhotoFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Could not read '+file.name+'. Try selecting it again.'));r.readAsDataURL(file);});}
 async function preparePhoto(file){
@@ -99,8 +134,10 @@ async function prepareItemPhotos(input){
 }
 async function storePhotoRecord(body){
  const existing=await readUploadedPhotoRows('training_content?select=id&title=eq.'+encodeURIComponent(body.title)+'&section=eq.'+encodeURIComponent(body.section)+'&category=eq.'+encodeURIComponent(body.category)+'&subsection=eq.'+encodeURIComponent(body.subsection)+'&limit=1');
- if(existing?.length)return;
- await request('training_content',{method:'POST',body:JSON.stringify(body)});
+ if(existing?.length)return existing[0].id;
+ const rows=await request('training_content?select=id',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(body)});
+ if(!rows?.[0]?.id)throw new Error('The photo could not be confirmed as saved.');
+ return rows[0].id;
 }
 async function savePendingItemPhotos(e,key){
  const chunkSize=512*1024;
@@ -121,8 +158,11 @@ async function savePendingItemPhotos(e,key){
     }
     description=JSON.stringify({name:p.name,chunkTitles});
    }else description=JSON.stringify({src:p.src,name:p.name});
-   await storePhotoRecord({...base,title:UPLOADED_PHOTO_PREFIX+p.token,description});
+   const savedId=await storePhotoRecord({...base,title:UPLOADED_PHOTO_PREFIX+p.token,description});
+   if(e.photoOrder)e.photoOrder=e.photoOrder.map(value=>value==='pending:'+p.token?'saved:'+savedId:value);
+   if(!uploadedPhotoRows.some(photo=>photo.id===savedId))uploadedPhotoRows.push({...p,id:savedId,key});
   }catch(error){throw new Error('Could not save '+(p.name||'this photo')+'. '+error.message+' Tap Save Changes to retry the remaining photos.');}
   e.pendingPhotos.shift();
  }
+ await saveEditorPhotoOrder(e,key);
 }
