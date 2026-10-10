@@ -1,6 +1,11 @@
 // Quality Photos reference supplied by the restaurant: October 2024.
 // Breakfast and cookie references are intentionally excluded.
 const QUALITY_PHOTOS = {
+  501:["Preparation equipment","grilled-prepare-1.jpeg"],
+  502:["Prepare grilled filets","grilled-prepare-2.jpeg"],
+  503:["Prepare the marinade","grilled-prepare-3.jpeg"],
+  504:["Add marinade to chicken","grilled-prepare-4.jpeg"],
+  505:["Mix chicken and marinade","grilled-prepare-5.gif"],
   401:['Grilled filet placement — Garland Grill 1.0 and 2.0','grilled-filets-loading.jpeg'],
   402:['Loading grilled nuggets','grilled-nuggets-loading.jpeg'],
   301:["Transfer strips to milk and egg wash","breading-strips-step-1.jpg"],
@@ -84,6 +89,7 @@ function qualityGalleryHtml(ids,title='Quality photos'){
  return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div></details>`;
 }
 function qualityPhotosHtml(item){
+ if(item.key==='station:breading:Marinate and prepare grilled filets/nuggets')return qualityGalleryHtml([501,502,503,504,505],'Marinate and prepare grilled filets/nuggets — photos');
  if(item.key==='station:breading:Load grilled chicken properly')return qualityGalleryHtml([401,402],'Load grilled filets and grilled nuggets — photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
  if(item.key==='station:breading:Bread strips')return qualityGalleryHtml([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
  if(item.key==='station:breading:Bread nuggets')return qualityGalleryHtml([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
