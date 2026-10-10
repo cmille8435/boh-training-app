@@ -30,6 +30,8 @@ const QUALITY_ITEM_PHOTOS={
  'station:rsa-assessment:8-Count Regular Nuggets':[20], 'station:rsa-assessment:5-Count Grilled Nuggets':[21,22], 'station:rsa-assessment:Waffle Fries':QUALITY_FRIES
 };
 function qualityPhotoIds(item){
+ if(item.key.startsWith('station:breading:'))return [];
+ if(item.key==='station:fries:Know step-by-step how to drop fries, shake, hit the timer, cook, bring up the fries, shake, and dump fries into the fry dispenser')return [];
  if(QUALITY_ITEM_PHOTOS[item.key])return QUALITY_ITEM_PHOTOS[item.key];
  const title=String(item.original||item.title||'').toLowerCase();
  if(/breakfast|cookie|biscuit|hash brown|chick.n.minis/.test(title))return [];
