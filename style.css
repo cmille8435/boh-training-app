@@ -106,3 +106,9 @@ nav button:active{background:#fff0f2;color:var(--red)}
 .training-image-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .training-image-heading h2{margin:0;font-size:18px}
 .training-image-dialog>img{display:block;max-width:100%;max-height:70vh;width:auto;height:auto;margin:auto;object-fit:contain}
+
+.sandwich-build-controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.sandwich-build-controls button:first-child{background:var(--red);border-color:var(--red);color:#fff}
+#sandwichBuildStatus{font-weight:700;color:var(--ink);min-height:24px;margin:8px 0}
+.sandwich-build-image{transition:clip-path .5s ease}
+@media(prefers-reduced-motion:reduce){.sandwich-build-image{transition:none}}
