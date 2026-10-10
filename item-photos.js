@@ -36,7 +36,7 @@ async function preparePhoto(file){
  if(file.size>20*1024*1024)throw new Error(file.name+' is too large. Choose a smaller photo.');
  const raw=await readPhotoFile(file);
  if(file.type==='image/gif'){
-  if(file.size>2*1024*1024)throw new Error('Choose a GIF smaller than 2 MB.');
+  // Preserve animated GIFs up to the shared 20 MB upload limit.
   if(!safePhotoSource(raw))throw new Error('This GIF could not be read.');return {src:raw,name:file.name};
  }
  const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Could not open '+file.name+'. Choose a JPEG, PNG, or GIF version.'));img.src=raw;});
