@@ -11,8 +11,23 @@ async function readUploadedPhotoRows(path){
   }
  }
 }
+async function resolveUploadedPhoto(row){
+ const direct=uploadedPhoto(row);if(direct)return direct;
+ let p;try{p=JSON.parse(row.description||'{}');}catch{return null;}
+ if(!Array.isArray(p.chunkTitles)||!p.chunkTitles.length||p.chunkTitles.length>64||!p.chunkTitles.every(t=>typeof t==='string'&&t.startsWith(UPLOADED_PHOTO_PREFIX+'chunk:')))return null;
+ const parts=[];
+ for(const title of p.chunkTitles){
+  const rows=await readUploadedPhotoRows('training_content?select=description&title=eq.'+encodeURIComponent(title)+'&subsection=eq.'+encodeURIComponent(row.subsection)+'&limit=1');
+  if(!rows?.[0])throw new Error('A saved photo could not be loaded. Please reopen this section.');
+  const chunk=JSON.parse(rows[0].description||'{}');
+  if(typeof chunk.part!=='string')throw new Error('A saved photo is incomplete.');
+  parts.push(chunk.part);
+ }
+ const src=parts.join('');
+ return safePhotoSource(src)?{...p,src,id:row.id,key:row.subsection}:null;
+}
 async function loadUploadedPhotos(group,slug){
- const scope='&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*')+'&section=eq.'+encodeURIComponent(group)+'&category=eq.'+encodeURIComponent(slug);
+ const scope='&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*')+'&title=not.like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'chunk:*')+'&section=eq.'+encodeURIComponent(group)+'&category=eq.'+encodeURIComponent(slug);
  const metadata=await readUploadedPhotoRows('training_content?select=id,subsection'+scope+'&order=sort_order.asc,id.asc');
  if(!Array.isArray(metadata))throw new Error('Photos could not be loaded. Please reopen this section.');
  const photos=[];
@@ -20,7 +35,7 @@ async function loadUploadedPhotos(group,slug){
  for(let i=0;i<metadata.length;i+=2){
   const batch=await Promise.all(metadata.slice(i,i+2).map(async row=>{
    const rows=await readUploadedPhotoRows('training_content?select=id,subsection,description&id=eq.'+encodeURIComponent(row.id)+scope);
-   return rows?.[0]?uploadedPhoto(rows[0]):null;
+   return rows?.[0]?await resolveUploadedPhoto(rows[0]):null;
   }));
   photos.push(...batch.filter(Boolean));
  }
@@ -38,7 +53,13 @@ function openUploadedPhoto(id){
 }
 async function deleteUploadedPhoto(id){
  if(!confirm('Delete this photo for everyone?'))return;
+ const saved=uploadedPhotoRows.find(p=>p.id===id);
+
  await request('training_content?id=eq.'+encodeURIComponent(id)+'&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*'),{method:'DELETE'});
+ if(saved?.chunkTitles?.length){
+  const titles='('+saved.chunkTitles.map(t=>JSON.stringify(t)).join(',')+')';
+  await request('training_content?title=in.'+encodeURIComponent(titles)+'&subsection=eq.'+encodeURIComponent(saved.key),{method:'DELETE'});
+ }
  uploadedPhotoRows=uploadedPhotoRows.filter(p=>p.id!==id);
  const dialog=document.getElementById('uploadedPhotoDialog');if(dialog?.open)dialog.close();
  if(editing&&document.getElementById('photoEditor'))renderPhotoEditor();else await refreshPage();
@@ -76,11 +97,31 @@ async function prepareItemPhotos(input){
   if(errors.length&&!e.pendingPhotos.length)alert(errors.join('\n'));
  }finally{e.photosBusy=false;save.disabled=add.disabled=cancel.disabled=false;input.value='';}
 }
+async function storePhotoRecord(body){
+ const existing=await readUploadedPhotoRows('training_content?select=id&title=eq.'+encodeURIComponent(body.title)+'&section=eq.'+encodeURIComponent(body.section)+'&category=eq.'+encodeURIComponent(body.category)+'&subsection=eq.'+encodeURIComponent(body.subsection)+'&limit=1');
+ if(existing?.length)return;
+ await request('training_content',{method:'POST',body:JSON.stringify(body)});
+}
 async function savePendingItemPhotos(e,key){
+ const chunkSize=512*1024;
  while(e.pendingPhotos?.length){
   const p=e.pendingPhotos[0];
+  const base={section:e.group,category:e.slug,subsection:key,item_type:'category',sort_order:Date.now()%2147483647};
   try{
-  await request('training_content',{method:'POST',body:JSON.stringify({section:e.group,category:e.slug,subsection:key,title:UPLOADED_PHOTO_PREFIX+p.token,description:JSON.stringify({src:p.src,name:p.name}),item_type:'category',sort_order:Date.now()%2147483647})});
+   let description;
+   if(p.src.length>chunkSize){
+    const chunkTitles=[];
+    const total=Math.ceil(p.src.length/chunkSize);
+    for(let offset=0,index=0;offset<p.src.length;offset+=chunkSize,index++){
+     const title=UPLOADED_PHOTO_PREFIX+'chunk:'+p.token+':'+index;
+     const status=document.getElementById('editorStatus');
+     if(status)status.textContent='Saving '+p.name+' ('+(index+1)+'/'+total+')…';
+     await storePhotoRecord({...base,title,description:JSON.stringify({part:p.src.slice(offset,offset+chunkSize)})});
+     chunkTitles.push(title);
+    }
+    description=JSON.stringify({name:p.name,chunkTitles});
+   }else description=JSON.stringify({src:p.src,name:p.name});
+   await storePhotoRecord({...base,title:UPLOADED_PHOTO_PREFIX+p.token,description});
   }catch(error){throw new Error('Could not save '+(p.name||'this photo')+'. '+error.message+' Tap Save Changes to retry the remaining photos.');}
   e.pendingPhotos.shift();
  }
