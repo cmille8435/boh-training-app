@@ -158,10 +158,11 @@ async function moveQualityPhoto(galleryKey,ids,index,direction){
  if(to<0||to>=ids.length)return;
  const ordered=[...ids];[ordered[index],ordered[to]]=[ordered[to],ordered[index]];
  qualityPhotoOrderBusy=true;
- document.querySelectorAll('[data-quality-order]').forEach(button=>button.disabled=true);
+ const controls=Array.from(document.querySelectorAll('[data-quality-order]')).map(button=>({button,disabled:button.disabled}));
+ controls.forEach(({button})=>button.disabled=true);
  try{
   const [group,slug]=currentPage.group==='editor'?currentPage.selection.split('|'):[currentPage.group,currentPage.slug];
   await putMeta('photo-order:'+galleryKey,{ids:ordered},group,slug);
   await refreshPage();
- }finally{qualityPhotoOrderBusy=false;}
+ }finally{qualityPhotoOrderBusy=false;controls.forEach(({button,disabled})=>button.disabled=disabled);}
 }
