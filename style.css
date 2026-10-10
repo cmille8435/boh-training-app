@@ -119,3 +119,16 @@ nav button:active{background:#fff0f2;color:var(--red)}
 .inline-build-controls button{font-size:13px;padding:10px 12px}
 .inline-build-status{margin:6px 0 0}
 .inline-build-status:empty{display:none}
+
+
+/* Matched quality references with an accessible enlarged gallery. */
+.quality-photos{margin:0 0 14px 35px}
+.quality-photos summary{cursor:pointer;font-size:14px;font-weight:700;color:var(--red);padding:10px 0;min-height:44px}
+.quality-photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:6px 0 12px}
+.quality-photo-thumbnail{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);text-align:left;min-width:0}
+.quality-photo-thumbnail img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:contain}
+.quality-photo-thumbnail span{width:100%;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.quality-source{margin:10px 0;line-height:1.5}
+.quality-category .quality-photos{margin-left:0}
+.quality-photo-navigation{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:13px}
+@media(max-width:360px){.quality-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quality-photos{margin-left:0}.quality-photo-navigation .ghost{padding:10px}}
