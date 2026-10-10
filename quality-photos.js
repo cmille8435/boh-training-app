@@ -7,8 +7,8 @@ const QUALITY_PHOTOS = {
   104:["Bread filets in coater","breading-filets-step-4.jpg"],
   105:["Place breaded filets in transfer pan","breading-filets-step-5.jpg"],
   106:["Rub excess coater back into the pan","breading-filets-step-6.jpg"],
-  107:["Filet placement in the fryer basket","breading-filets-step-7.jpg"],
-  108:["Lower the basket cover","breading-filets-step-8.jpg"],
+  107:["Regular filet placement in the fryer basket","breading-filets-step-7.jpg"],
+  108:["Lower the regular filet basket cover","breading-filets-step-8.jpg"],
   4:['Filet coater color','page-04.jpg'],5:['Filet coater consistency','page-05.jpg'],6:['Minimum filet bun coverage','page-06.jpg'],7:['Filet coater coverage','page-07.jpg'],
   8:['Spicy filet coater color','page-08.jpg'],9:['Spicy filet coater consistency','page-09.jpg'],10:['Minimum spicy filet bun coverage','page-10.jpg'],
   11:['Grilled filet maximum carbon','grilled-filet-carbon.jpg'],12:['Grilled filet color','page-12.jpg'],13:['Minimum grilled filet bun coverage','page-13.jpg'],
@@ -61,7 +61,7 @@ function qualityGalleryHtml(ids,title='Quality photos'){
  return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div><p class="small quality-source">Quality Photos · October 2024 · Check Pathway for the latest version.</p></details>`;
 }
 function qualityPhotosHtml(item){
- if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Breading filets — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Breading Filets · Photos from your training recording.');
+ if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Regular Filets · Basket-loading photos apply to the regular filet machine. Spicy filets use a different machine.');
  return qualityGalleryHtml(qualityPhotoIds(item));
 }
 function qualityCategoryHtml(group,slug){
