@@ -1,6 +1,12 @@
 // Quality Photos reference supplied by the restaurant: October 2024.
 // Breakfast and cookie references are intentionally excluded.
 const QUALITY_PHOTOS = {
+  601:["Filet roller components","filet-roller-prepare-1.jpeg"],
+  602:["Roller gear detail","filet-roller-prepare-2.gif"],
+  603:["Roller side detail","filet-roller-prepare-3.gif"],
+  604:["Roller handle","filet-roller-prepare-4.gif"],
+  605:["Assembled roller with pans","filet-roller-prepare-5.jpeg"],
+  606:["Prepared roller station","filet-roller-prepare-6.jpeg"],
   501:["Preparation equipment","grilled-prepare-1.jpeg"],
   502:["Prepare grilled filets","grilled-prepare-2.jpeg"],
   503:["Prepare the marinade","grilled-prepare-3.jpeg"],
@@ -89,6 +95,7 @@ function qualityGalleryHtml(ids,title='Quality photos'){
  return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div></details>`;
 }
 function qualityPhotosHtml(item){
+ if(/filet roller.*prepar.*use/i.test(item.title||item.original||''))return qualityGalleryHtml([601,602,603,604,605,606],'Filet roller preparation — photos');
  if(item.key==='station:breading:Marinate and prepare grilled filets/nuggets')return qualityGalleryHtml([501,502,503,504,505],'Marinate and prepare grilled filets/nuggets — photos');
  if(item.key==='station:breading:Load grilled chicken properly')return qualityGalleryHtml([401,402],'Load grilled filets and grilled nuggets — photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
  if(item.key==='station:breading:Bread strips')return qualityGalleryHtml([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
