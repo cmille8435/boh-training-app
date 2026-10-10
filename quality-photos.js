@@ -107,8 +107,10 @@ function qualityPhotoIds(item){
 }
 function qualityGalleryHtml(ids,title='Quality photos',galleryKey='gallery:'+title){
  ids=ids.filter(id=>!meta('photo-hidden:'+galleryKey+':'+id).hidden);
+ const savedOrder=meta('photo-order:'+galleryKey).ids;
+ if(Array.isArray(savedOrder))ids=[...savedOrder.filter(id=>ids.includes(id)),...ids.filter(id=>!savedOrder.includes(id))];
  if(!ids.length)return '';
- return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<div class="quality-photo-entry"><button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button><button type="button" class="ghost" onclick="run(()=>deleteTrainingPhoto(${arg(galleryKey)},${id}))" aria-label="Delete ${esc(caption)}">Delete photo</button></div>`;}).join('')}</div></details>`;
+ return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<div class="quality-photo-entry"><button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button><div style="display:flex;gap:6px"><button type="button" class="ghost" data-quality-order style="flex:1;font-size:13px" onclick="run(()=>moveQualityPhoto(${arg(galleryKey)},${arg(ids)},${index},-1))" ${index===0?'disabled':''}>↑ Move Up</button><button type="button" class="ghost" data-quality-order style="flex:1;font-size:13px" onclick="run(()=>moveQualityPhoto(${arg(galleryKey)},${arg(ids)},${index},1))" ${index===ids.length-1?'disabled':''}>↓ Move Down</button></div><button type="button" class="ghost" onclick="run(()=>deleteTrainingPhoto(${arg(galleryKey)},${id}))" aria-label="Delete ${esc(caption)}">Delete photo</button></div>`;}).join('')}</div></details>`;
 }
 function qualityPhotosHtml(item){
  const gallery=(ids,title)=>qualityGalleryHtml(ids,title,item.key);
@@ -147,4 +149,19 @@ async function deleteTrainingPhoto(galleryKey,id){
  await putMeta('photo-hidden:'+galleryKey+':'+id,{hidden:true},group,slug);
  const dialog=document.getElementById('qualityPhotoDialog');if(dialog?.open)dialog.close();
  await refreshPage();
+}
+
+let qualityPhotoOrderBusy=false;
+async function moveQualityPhoto(galleryKey,ids,index,direction){
+ if(qualityPhotoOrderBusy)return;
+ const to=index+direction;
+ if(to<0||to>=ids.length)return;
+ const ordered=[...ids];[ordered[index],ordered[to]]=[ordered[to],ordered[index]];
+ qualityPhotoOrderBusy=true;
+ document.querySelectorAll('[data-quality-order]').forEach(button=>button.disabled=true);
+ try{
+  const [group,slug]=currentPage.group==='editor'?currentPage.selection.split('|'):[currentPage.group,currentPage.slug];
+  await putMeta('photo-order:'+galleryKey,{ids:ordered},group,slug);
+  await refreshPage();
+ }finally{qualityPhotoOrderBusy=false;}
 }
