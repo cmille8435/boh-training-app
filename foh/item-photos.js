@@ -3,9 +3,28 @@ const UPLOADED_PHOTO_PREFIX='__foh_photo__:';
 let uploadedPhotoRows=[];
 function safePhotoSource(src){return /^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+$/.test(src||'')?src:'';}
 function uploadedPhoto(row){try{const p=JSON.parse(row.description||'{}');return safePhotoSource(p.src)?{...p,id:row.id,key:row.subsection}:null;}catch{return null;}}
+async function readUploadedPhotoRows(path){
+ for(let attempt=0;attempt<3;attempt++){
+  try{return await request(path);}catch(error){
+   if(attempt===2||!/(500|502|503|504)/.test(error.message||''))throw error;
+   await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)));
+  }
+ }
+}
 async function loadUploadedPhotos(group,slug){
- const rows=await request('training_content?select=id,subsection,description&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*')+'&section=eq.'+encodeURIComponent(group)+'&category=eq.'+encodeURIComponent(slug)+'&order=sort_order.asc,id.asc');
- uploadedPhotoRows=rows.map(uploadedPhoto).filter(Boolean);
+ const scope='&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*')+'&section=eq.'+encodeURIComponent(group)+'&category=eq.'+encodeURIComponent(slug);
+ const metadata=await readUploadedPhotoRows('training_content?select=id,subsection'+scope+'&order=sort_order.asc,id.asc');
+ if(!Array.isArray(metadata))throw new Error('Photos could not be loaded. Please reopen this section.');
+ const photos=[];
+ // Fetch at most two photo records at once, avoiding a single large JSON response.
+ for(let i=0;i<metadata.length;i+=2){
+  const batch=await Promise.all(metadata.slice(i,i+2).map(async row=>{
+   const rows=await readUploadedPhotoRows('training_content?select=id,subsection,description&id=eq.'+encodeURIComponent(row.id)+scope);
+   return rows?.[0]?uploadedPhoto(rows[0]):null;
+  }));
+  photos.push(...batch.filter(Boolean));
+ }
+ uploadedPhotoRows=photos;
 }
 function uploadedPhotosHtml(item){
  const photos=uploadedPhotoRows.filter(p=>p.key===item.key);if(!photos.length)return '';
@@ -60,7 +79,9 @@ async function prepareItemPhotos(input){
 async function savePendingItemPhotos(e,key){
  while(e.pendingPhotos?.length){
   const p=e.pendingPhotos[0];
+  try{
   await request('training_content',{method:'POST',body:JSON.stringify({section:e.group,category:e.slug,subsection:key,title:UPLOADED_PHOTO_PREFIX+p.token,description:JSON.stringify({src:p.src,name:p.name}),item_type:'category',sort_order:Date.now()%2147483647})});
+  }catch(error){throw new Error('Could not save '+(p.name||'this photo')+'. '+error.message+' Tap Save Changes to retry the remaining photos.');}
   e.pendingPhotos.shift();
  }
 }
