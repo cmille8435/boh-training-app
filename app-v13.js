@@ -10,7 +10,7 @@ function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt
 function arg(s){return esc(JSON.stringify(s));}
 function idFor(group,slug,item){return `${group}:${slug}:${item}`;}
 async function request(path,options={}){const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...options,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',...options.headers}});if(!r.ok)throw new Error('Unable to save or load. Please try again. ('+r.status+')');if(r.status===204)return null;const text=await r.text();return text?JSON.parse(text):null;}
-async function loadTrainingContent(){const rows=await request('training_content?select=*&title=not.like.__boh_photo__:*&order=sort_order.asc');if(!Array.isArray(rows))throw new Error('Training data could not be loaded.');trainingContent=rows;}
+async function loadTrainingContent(){const rows=await request('training_content?select=*&and=(title.not.like.__boh_photo__:*,title.not.like.__foh_photo__:*)&order=sort_order.asc');if(!Array.isArray(rows))throw new Error('Training data could not be loaded.');trainingContent=rows;}
 function report(error){alert(error.message||'Something went wrong. Please try again.');}
 async function run(action){try{await action();}catch(error){report(error);}}
 function base(group,slug){return group==='station'?STATIONS[slug]:group==='closing'?CLOSING[slug]:WELCOME;}
