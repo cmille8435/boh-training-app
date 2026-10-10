@@ -1,6 +1,6 @@
 // Shared item photos use the existing training content service.
 const UPLOADED_PHOTO_PREFIX='__foh_photo__:';
-let uploadedPhotoRows=[];
+let uploadedPhotoRows=[],uploadedPhotoLoadSequence=0;
 function safePhotoSource(src){return /^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+$/.test(src||'')?src:'';}
 function uploadedPhoto(row){try{const p=JSON.parse(row.description||'{}');return safePhotoSource(p.src)?{...p,id:row.id,key:row.subsection}:null;}catch{return null;}}
 async function readUploadedPhotoRows(path){
@@ -27,6 +27,7 @@ async function resolveUploadedPhoto(row){
  return safePhotoSource(src)?{...p,src,id:row.id,key:row.subsection}:null;
 }
 async function loadUploadedPhotos(group,slug){
+ const sequence=++uploadedPhotoLoadSequence;
  const scope='&title=like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'*')+'&title=not.like.'+encodeURIComponent(UPLOADED_PHOTO_PREFIX+'chunk:*')+'&section=eq.'+encodeURIComponent(group)+'&category=eq.'+encodeURIComponent(slug);
  const metadata=await readUploadedPhotoRows('training_content?select=id,subsection'+scope+'&order=sort_order.asc,id.asc');
  if(!Array.isArray(metadata))throw new Error('Photos could not be loaded. Please reopen this section.');
@@ -39,7 +40,7 @@ async function loadUploadedPhotos(group,slug){
   }));
   photos.push(...batch.filter(Boolean));
  }
- uploadedPhotoRows=photos;
+ if(sequence===uploadedPhotoLoadSequence)uploadedPhotoRows=photos;
 }
 function uploadedPhotosHtml(item){
  const photos=uploadedPhotoRows.filter(p=>p.key===item.key);if(!photos.length)return '';
