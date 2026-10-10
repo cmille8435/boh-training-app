@@ -96,3 +96,13 @@ nav button:active{background:#fff0f2;color:var(--red)}
 .fsa-checkrow input{width:22px;height:22px;margin:1px 0 0;flex-shrink:0;accent-color:var(--red);cursor:pointer}
 .fsa-checkrow span{flex:1;min-width:0;overflow-wrap:anywhere}
 .fsa-checkrow input:checked+span{color:#166534}
+
+/* Tappable training reference images. */
+.training-thumbnail{display:flex;flex-direction:column;align-items:center;gap:4px;width:104px;margin:0 0 12px 35px;padding:7px;background:#fff;border:1px solid var(--line);border-radius:12px;color:var(--muted)}
+.training-thumbnail img{display:block;width:88px;height:108px;object-fit:contain}
+.training-thumbnail small{font-size:11px;font-weight:500}
+.training-image-dialog{width:min(92vw,680px);max-height:88vh;padding:16px;border:1px solid var(--line);border-radius:16px;background:#fff;overflow:auto;color:var(--ink)}
+.training-image-dialog::backdrop{background:rgba(0,0,0,.65)}
+.training-image-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.training-image-heading h2{margin:0;font-size:18px}
+.training-image-dialog>img{display:block;max-width:100%;max-height:70vh;width:auto;height:auto;margin:auto;object-fit:contain}
