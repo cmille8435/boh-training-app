@@ -24,7 +24,7 @@ async function deleteUploadedPhoto(id){
  const dialog=document.getElementById('uploadedPhotoDialog');if(dialog?.open)dialog.close();
  if(editing&&document.getElementById('photoEditor'))renderPhotoEditor();else await refreshPage();
 }
-function photoEditorHtml(){return '<section class="photo-editor"><h2>Photos (optional)</h2><input id="addPhotosButton" type="file" accept="image/*" multiple aria-label="Add Photos" style="display:block;position:static;opacity:1;visibility:visible;width:100%;height:auto;min-height:48px;padding:12px 0;font-size:16px;pointer-events:auto" onchange="run(()=>prepareItemPhotos(this))"><p class="small">Choose photos from your phone, then tap Save Changes.</p><p id="photoStatus" class="small" role="status"></p><div id="photoEditor"></div></section>';}
+function photoEditorHtml(){return '<section class="photo-editor"><h2>Photos (optional)</h2><input id="addPhotosButton" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple aria-label="Add Photos" style="display:block;position:static;opacity:1;visibility:visible;width:100%;height:auto;min-height:48px;padding:12px 0;font-size:16px;pointer-events:auto" onchange="prepareItemPhotos(this).catch(report)"><p class="small">Choose photos from your phone, then tap Save Changes.</p><p id="photoStatus" class="small" role="status"></p><div id="photoEditor"></div></section>';}
 function renderPhotoEditor(){
  const target=document.getElementById('photoEditor');if(!target||!editing)return;
  const saved=uploadedPhotoRows.filter(p=>p.key===editing.key);
@@ -48,12 +48,13 @@ async function preparePhoto(file){
 }
 async function prepareItemPhotos(input){
  const e=editing,files=Array.from(input.files||[]);if(!e||!files.length)return;
- const status=document.getElementById('photoStatus');e.photosBusy=true;
+ const status=document.getElementById('photoStatus');e.photosBusy=true;status.textContent='Selected '+files.length+' photo(s). Preparing preview…';
  const save=document.getElementById('saveItemButton'),add=document.getElementById('addPhotosButton'),cancel=document.getElementById('cancelItemButton');save.disabled=add.disabled=cancel.disabled=true;
  const errors=[];
  try{
-  for(let i=0;i<files.length;i++){status.textContent='Preparing photo '+(i+1)+' of '+files.length+'…';try{const p=await preparePhoto(files[i]);p.token=crypto.randomUUID();e.pendingPhotos.push(p);}catch(error){errors.push(error.message);}renderPhotoEditor();}
+  for(let i=0;i<files.length;i++){status.textContent='Preparing photo '+(i+1)+' of '+files.length+'…';try{const p=await preparePhoto(files[i]);p.token=globalThis.crypto?.randomUUID?.()||('photo-'+Date.now()+'-'+Math.random().toString(36).slice(2));e.pendingPhotos.push(p);}catch(error){errors.push(error.message);}renderPhotoEditor();}
   status.textContent=errors.length?errors.join(' '):'Photos ready. Tap Save Changes to share them.';
+  if(errors.length&&!e.pendingPhotos.length)alert(errors.join('\n'));
  }finally{e.photosBusy=false;save.disabled=add.disabled=cancel.disabled=false;input.value='';}
 }
 async function savePendingItemPhotos(e,key){
