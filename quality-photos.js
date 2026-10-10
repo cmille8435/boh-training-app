@@ -1,6 +1,21 @@
 // Quality Photos reference supplied by the restaurant: October 2024.
 // Breakfast and cookie references are intentionally excluded.
 const QUALITY_PHOTOS = {
+  701:["Position the lid supports","ice-bath-setup-1.jpeg"],
+  702:["Install the supply holder","ice-bath-setup-2.jpeg"],
+  703:["Fill a container with water","ice-bath-setup-3.jpeg"],
+  704:["Prepare containers of ice","ice-bath-setup-4.jpeg"],
+  705:["Add ice to the table","ice-bath-setup-5.jpeg"],
+  706:["Mix the ice bath","ice-bath-setup-6.jpeg"],
+  707:["Install the pan support frame","ice-bath-setup-7.jpeg"],
+  708:["Place the pans in the table","ice-bath-setup-8.jpeg"],
+  709:["Install the pan divider","ice-bath-setup-9.jpeg"],
+  710:["Position the remaining pan","ice-bath-setup-10.jpeg"],
+  711:["Open the seasoned coater bag","ice-bath-setup-11.gif"],
+  712:["Add milk and egg wash","ice-bath-setup-12.jpeg"],
+  713:["Load chicken into the pan","ice-bath-setup-13.jpeg"],
+  714:["Arrange chicken in the pan","ice-bath-setup-14.jpeg"],
+  715:["Completed breading table setup","ice-bath-setup-15.jpeg"],
   601:["Filet roller components","filet-roller-prepare-1.jpeg"],
   602:["Roller gear detail","filet-roller-prepare-2.gif"],
   603:["Roller side detail","filet-roller-prepare-3.gif"],
@@ -90,18 +105,21 @@ function qualityPhotoIds(item){
  if(/fries|waffle fry/.test(title))return QUALITY_FRIES;
  return [];
 }
-function qualityGalleryHtml(ids,title='Quality photos'){
+function qualityGalleryHtml(ids,title='Quality photos',galleryKey='gallery:'+title){
+ ids=ids.filter(id=>!meta('photo-hidden:'+galleryKey+':'+id).hidden);
  if(!ids.length)return '';
- return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div></details>`;
+ return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<div class="quality-photo-entry"><button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button><button type="button" class="ghost" onclick="run(()=>deleteTrainingPhoto(${arg(galleryKey)},${id}))" aria-label="Delete ${esc(caption)}">Delete photo</button></div>`;}).join('')}</div></details>`;
 }
 function qualityPhotosHtml(item){
- if(/filet roller.*prepar.*use/i.test(item.title||item.original||''))return qualityGalleryHtml([601,602,603,604,605,606],'Filet roller preparation — photos');
- if(item.key==='station:breading:Marinate and prepare grilled filets/nuggets')return qualityGalleryHtml([501,502,503,504,505],'Marinate and prepare grilled filets/nuggets — photos');
- if(item.key==='station:breading:Load grilled chicken properly')return qualityGalleryHtml([401,402],'Load grilled filets and grilled nuggets — photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
- if(item.key==='station:breading:Bread strips')return qualityGalleryHtml([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
- if(item.key==='station:breading:Bread nuggets')return qualityGalleryHtml([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
- if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
- return qualityGalleryHtml(qualityPhotoIds(item));
+ const gallery=(ids,title)=>qualityGalleryHtml(ids,title,item.key);
+ if(/^set\s*up ice bath breading table$/i.test(item.title||'')||/^set\s*up ice bath breading table$/i.test(item.original||''))return gallery([701,702,703,704,705,706,707,708,709,710,711,712,713,714,715],'Ice bath breading table setup — step photos');
+ if(/filet roller.*prepar.*use/i.test(item.title||item.original||''))return gallery([601,602,603,604,605,606],'Filet roller preparation — photos');
+ if(item.key==='station:breading:Marinate and prepare grilled filets/nuggets')return gallery([501,502,503,504,505],'Marinate and prepare grilled filets/nuggets — photos');
+ if(item.key==='station:breading:Load grilled chicken properly')return gallery([401,402],'Load grilled filets and grilled nuggets — photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ if(item.key==='station:breading:Bread strips')return gallery([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ if(item.key==='station:breading:Bread nuggets')return gallery([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ if(item.key==='station:breading:Bread filets and spicy filets')return gallery([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ return gallery(qualityPhotoIds(item));
 }
 function qualityCategoryHtml(group,slug){
  if(group!=='station')return '';
@@ -121,3 +139,12 @@ function renderQualityPhoto(){
  dialog.innerHTML=`<div class="training-image-heading"><h2>${esc(caption)}</h2><button type="button" class="ghost" onclick="document.getElementById('qualityPhotoDialog').close()">Close</button></div><img src="assets/quality/${file}" alt="${esc(caption)}"><div class="quality-photo-navigation"><button type="button" class="ghost" onclick="stepQualityPhoto(-1)" ${qualityDialogIndex===0?'disabled':''}>Previous</button><span role="status" aria-live="polite">${qualityDialogIndex+1} of ${qualityDialogIds.length}</span><button type="button" class="ghost" onclick="stepQualityPhoto(1)" ${qualityDialogIndex===qualityDialogIds.length-1?'disabled':''}>Next</button></div>`;
 }
 function stepQualityPhoto(step){const next=qualityDialogIndex+step;if(next<0||next>=qualityDialogIds.length)return;qualityDialogIndex=next;renderQualityPhoto();}
+
+async function deleteTrainingPhoto(galleryKey,id){
+ const photo=QUALITY_PHOTOS[id];if(!photo)return;
+ if(!confirm('Delete this photo from this training gallery for everyone?'))return;
+ const [group,slug]=currentPage.group==='editor'?currentPage.selection.split('|'):[currentPage.group,currentPage.slug];
+ await putMeta('photo-hidden:'+galleryKey+':'+id,{hidden:true},group,slug);
+ const dialog=document.getElementById('qualityPhotoDialog');if(dialog?.open)dialog.close();
+ await refreshPage();
+}
