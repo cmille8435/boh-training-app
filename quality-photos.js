@@ -1,6 +1,16 @@
 // Quality Photos reference supplied by the restaurant: October 2024.
 // Breakfast and cookie references are intentionally excluded.
 const QUALITY_PHOTOS = {
+  201:["Measure nuggets with the scoop","breading-nuggets-step-1.jpg"],
+  202:["Separate and check nuggets","breading-nuggets-step-2.jpg"],
+  203:["Coat nuggets with milk and egg wash","breading-nuggets-step-3.jpg"],
+  204:["Drain excess milk and egg wash","breading-nuggets-step-4.jpg"],
+  205:["Transfer nuggets to seasoned coater","breading-nuggets-step-5.jpg"],
+  206:["Cover and coat nuggets","breading-nuggets-step-6.jpg"],
+  207:["Transfer nuggets to the wire basket","breading-nuggets-step-7.jpg"],
+  208:["Gently remove excess coater","breading-nuggets-step-8.jpg"],
+  209:["Place transfer pan on the fryer shelf","breading-nuggets-step-9.jpg"],
+  210:["Pour breaded nuggets into the nugget basket","breading-nuggets-step-10.jpg"],
   101:["Open coater bag from the top seal","breading-filets-step-1.jpg"],
   102:["Coat filets with milk and egg wash","breading-filets-step-2.jpg"],
   103:["Gently drain excess milk and egg wash","breading-filets-step-3.jpg"],
@@ -61,6 +71,7 @@ function qualityGalleryHtml(ids,title='Quality photos'){
  return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div><p class="small quality-source">Quality Photos · October 2024 · Check Pathway for the latest version.</p></details>`;
 }
 function qualityPhotosHtml(item){
+ if(item.key==='station:breading:Bread nuggets')return qualityGalleryHtml([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Breading Nuggets · Photos from your training recording.');
  if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Regular Filets · Basket-loading photos apply to the regular filet machine. Spicy filets use a different machine.');
  return qualityGalleryHtml(qualityPhotoIds(item));
 }
@@ -79,6 +90,6 @@ function openQualityPhoto(ids,index){
 }
 function renderQualityPhoto(){
  const dialog=document.getElementById('qualityPhotoDialog'),[caption,file]=QUALITY_PHOTOS[qualityDialogIds[qualityDialogIndex]];
- dialog.innerHTML=`<div class="training-image-heading"><h2>${esc(caption)}</h2><button type="button" class="ghost" onclick="document.getElementById('qualityPhotoDialog').close()">Close</button></div><img src="assets/quality/${file}" alt="${esc(caption)}"><div class="quality-photo-navigation"><button type="button" class="ghost" onclick="stepQualityPhoto(-1)" ${qualityDialogIndex===0?'disabled':''}>Previous</button><span role="status" aria-live="polite">${qualityDialogIndex+1} of ${qualityDialogIds.length}</span><button type="button" class="ghost" onclick="stepQualityPhoto(1)" ${qualityDialogIndex===qualityDialogIds.length-1?'disabled':''}>Next</button></div><p class="small quality-source">Quality Photos · October 2024 · Check Pathway for the latest version.</p>`;
+ dialog.innerHTML=`<div class="training-image-heading"><h2>${esc(caption)}</h2><button type="button" class="ghost" onclick="document.getElementById('qualityPhotoDialog').close()">Close</button></div><img src="assets/quality/${file}" alt="${esc(caption)}"><div class="quality-photo-navigation"><button type="button" class="ghost" onclick="stepQualityPhoto(-1)" ${qualityDialogIndex===0?'disabled':''}>Previous</button><span role="status" aria-live="polite">${qualityDialogIndex+1} of ${qualityDialogIds.length}</span><button type="button" class="ghost" onclick="stepQualityPhoto(1)" ${qualityDialogIndex===qualityDialogIds.length-1?'disabled':''}>Next</button></div><p class="small quality-source">${qualityDialogIds[qualityDialogIndex]>=100?'Pathway · Breading step photo · From your training recording.':'Quality Photos · October 2024 · Check Pathway for the latest version.'}</p>`;
 }
 function stepQualityPhoto(step){const next=qualityDialogIndex+step;if(next<0||next>=qualityDialogIds.length)return;qualityDialogIndex=next;renderQualityPhoto();}
