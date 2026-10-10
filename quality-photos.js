@@ -1,6 +1,17 @@
 // Quality Photos reference supplied by the restaurant: October 2024.
 // Breakfast and cookie references are intentionally excluded.
 const QUALITY_PHOTOS = {
+  301:["Transfer strips to milk and egg wash","breading-strips-step-1.jpg"],
+  302:["Coat and separate strips in milk and egg wash","breading-strips-step-2.jpg"],
+  303:["Drain strips","breading-strips-step-3.jpg"],
+  304:["Transfer strips to seasoned coater","breading-strips-step-4.jpg"],
+  305:["Coat strips with seasoned coater","breading-strips-step-5.jpg"],
+  306:["Transfer breaded strips to the wire basket","breading-strips-step-6.jpg"],
+  307:["Gently remove excess coater","breading-strips-step-7.jpg"],
+  308:["Place the transfer pan on the fryer shelf","breading-strips-step-8.jpg"],
+  309:["Position strips on basket shelves","breading-strips-step-9.jpg"],
+  310:["Place smaller batches on middle shelves","breading-strips-step-10.jpg"],
+  311:["Lower the basket cover","breading-strips-step-11.jpg"],
   201:["Measure nuggets with the scoop","breading-nuggets-step-1.jpg"],
   202:["Separate and check nuggets","breading-nuggets-step-2.jpg"],
   203:["Coat nuggets with milk and egg wash","breading-nuggets-step-3.jpg"],
@@ -71,6 +82,7 @@ function qualityGalleryHtml(ids,title='Quality photos'){
  return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div><p class="small quality-source">Quality Photos · October 2024 · Check Pathway for the latest version.</p></details>`;
 }
 function qualityPhotosHtml(item){
+ if(item.key==='station:breading:Bread strips')return qualityGalleryHtml([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Breading Chick-n-Strips · Photos from your training recording.');
  if(item.key==='station:breading:Bread nuggets')return qualityGalleryHtml([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Breading Nuggets · Photos from your training recording.');
  if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Regular Filets · Basket-loading photos apply to the regular filet machine. Spicy filets use a different machine.');
  return qualityGalleryHtml(qualityPhotoIds(item));
