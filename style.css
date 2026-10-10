@@ -112,3 +112,10 @@ nav button:active{background:#fff0f2;color:var(--red)}
 #sandwichBuildStatus{font-weight:700;color:var(--ink);min-height:24px;margin:8px 0}
 .sandwich-build-image{transition:clip-path .5s ease}
 @media(prefers-reduced-motion:reduce){.sandwich-build-image{transition:none}}
+
+.training-reference{margin:0 0 12px 35px}
+.training-reference .training-thumbnail{margin:0 0 10px}
+.inline-build-controls{margin:0;gap:8px}
+.inline-build-controls button{font-size:13px;padding:10px 12px}
+.inline-build-status{margin:6px 0 0}
+.inline-build-status:empty{display:none}
