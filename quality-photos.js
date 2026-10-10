@@ -84,10 +84,10 @@ function qualityGalleryHtml(ids,title='Quality photos'){
  return `<details class="quality-photos"><summary>${esc(title)} (${ids.length})</summary><div class="quality-photo-grid">${ids.map((id,index)=>{const [caption,file]=QUALITY_PHOTOS[id];return `<button type="button" class="quality-photo-thumbnail" onclick="openQualityPhoto(${arg(ids)},${index})" aria-label="Enlarge ${esc(caption)}"><img src="assets/quality/${file}" alt="${esc(caption)}" loading="lazy" width="120" height="120"><span>${esc(caption)}</span></button>`;}).join('')}</div><p class="small quality-source">Quality Photos · October 2024 · Check Pathway for the latest version.</p></details>`;
 }
 function qualityPhotosHtml(item){
- if(item.key==='station:breading:Load grilled chicken properly')return qualityGalleryHtml([401,402],'Load grilled filets and grilled nuggets — photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Grilled chicken loading reference.');
- if(item.key==='station:breading:Bread strips')return qualityGalleryHtml([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Breading Chick-n-Strips · Photos from your training recording.');
- if(item.key==='station:breading:Bread nuggets')return qualityGalleryHtml([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Breading Nuggets · Photos from your training recording.');
- if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace('Quality Photos · October 2024 · Check Pathway for the latest version.','Pathway · Regular Filets · Basket-loading photos apply to the regular filet machine. Spicy filets use a different machine.');
+ if(item.key==='station:breading:Load grilled chicken properly')return qualityGalleryHtml([401,402],'Load grilled filets and grilled nuggets — photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ if(item.key==='station:breading:Bread strips')return qualityGalleryHtml([301,302,303,304,305,306,307,308,309,310,311],'Breading strips — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ if(item.key==='station:breading:Bread nuggets')return qualityGalleryHtml([201,202,203,204,205,206,207,208,209,210],'Breading nuggets — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
+ if(item.key==='station:breading:Bread filets and spicy filets')return qualityGalleryHtml([101,102,103,104,105,106,107,108],'Regular filet breading — step photos').replace(/<p class="small quality-source">[\s\S]*?<\/p>/,'');
  return qualityGalleryHtml(qualityPhotoIds(item));
 }
 function qualityCategoryHtml(group,slug){
