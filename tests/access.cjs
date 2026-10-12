@@ -22,6 +22,7 @@ async function databaseTests(){
  ('00000000-0000-0000-0000-000000000004','unverified@test.com',null),
  ('00000000-0000-0000-0000-000000000005','fohleader@test.com',now());
  INSERT INTO training_app_leaders VALUES ('leader@test.com','boh','Leader'),('unverified@test.com','boh','Unverified'),('fohleader@test.com','foh','FOH Leader');
+ INSERT INTO training_app_access_admins VALUES ('leader@test.com','boh');
  INSERT INTO training_app_members VALUES ('member@test.com','boh','Member'),('other@test.com','boh','Other');
  INSERT INTO boh_training(team_member,progress) VALUES ('Member','{}'),('Other','{}'),('FOH::Member','{}');
  INSERT INTO training_content(section,title) VALUES ('station','BOH'),('foh-station','FOH');`);
@@ -39,6 +40,13 @@ async function databaseTests(){
  await assert.rejects(()=>as(id(1),"SELECT training_delete_member('foh','Member')"));
  assert.equal((await as(id(4),'SELECT * FROM boh_training')).rows.length,0);
  assert.equal((await as(id(5),'SELECT * FROM boh_training')).rows.length,1);
+ await assert.rejects(()=>as(id(2),"SELECT training_grant_leader('boh','Member','member@test.com')"));
+ await assert.rejects(()=>as(id(5),"SELECT training_grant_leader('foh','New Leader','newleader@test.com')"));
+ await assert.rejects(()=>as(id(1),"SELECT training_grant_leader('foh','New Leader','newleader@test.com')"));
+ await as(id(1),"SELECT training_grant_leader('boh','Other','other@test.com')");
+ assert.equal((await as(id(3),"SELECT training_is_leader('boh') AS yes,training_can_manage_leaders('boh') AS admin")).rows[0].yes,true);
+ assert.equal((await as(id(3),"SELECT training_can_manage_leaders('boh') AS admin")).rows[0].admin,false);
+ await db.exec("RESET ROLE;DELETE FROM training_app_leaders WHERE email='other@test.com';");
  await as(id(1),"SELECT training_link_member('boh','New','new@test.com')");
  await as(id(1),"SELECT training_delete_member('boh','Other')");
  assert.equal((await as(id(3),'SELECT * FROM boh_training')).rows.length,0);
@@ -56,6 +64,7 @@ async function appTests(){
    requests.push({url,options});let data=[];
    if(url.includes('/auth/v1/user'))data={id:'user-id',email:'verified@test.com'};
    else if(url.includes('rpc/training_my_access'))data=[{app_scope:scope,is_leader:leader,display_name:'Member',team_member:'Member'}];
+   else if(url.includes('rpc/training_can_manage_leaders'))data=leader;
    else if(url.includes('/boh_training'))data=[{id:1,team_member:scope==='foh'?'FOH::Member':'Member',progress:{}}];
    return {ok:true,status:200,json:async()=>data,text:async()=>JSON.stringify(data)};
   };
@@ -73,7 +82,7 @@ async function appTests(){
    assert.ok([...w.document.querySelectorAll('.training-item .checkrow input')].every(input=>input.disabled));
    const edit=w.document.querySelector('.edit-actions');if(edit)assert.equal(w.getComputedStyle(edit).display,'none');
    await assert.rejects(()=>w.eval('TrainingAccess.request("training_content",{method:"POST",body:"{}"})'));
-  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));}
+  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));}
   assert.ok(requests.filter(r=>r.url.includes('/rest/v1/')).every(r=>r.options.headers.Authorization==='Bearer verified-session'));
   await w.eval('TrainingAccess.signOut()');assert.equal(w.document.querySelector('nav').hidden,true);assert.equal(w.eval('trainee'), '');assert.equal(w.eval('Object.keys(progress).length'),0);
   dom.window.close();console.log(scope.toUpperCase()+': '+(leader?'leader':'member')+' UI and session isolation PASS');

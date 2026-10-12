@@ -9,6 +9,13 @@ CREATE TABLE IF NOT EXISTS public.training_app_leaders (
  display_name text NOT NULL,
  PRIMARY KEY(email,app_scope)
 );
+CREATE TABLE IF NOT EXISTS public.training_app_access_admins (
+ email text NOT NULL CHECK(email=lower(email)),
+ app_scope text NOT NULL CHECK(app_scope IN ('boh','foh')),
+ PRIMARY KEY(email,app_scope)
+);
+ALTER TABLE public.training_app_access_admins ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.training_app_access_admins FROM anon,authenticated;
 CREATE TABLE IF NOT EXISTS public.training_app_members (
  email text NOT NULL CHECK(email=lower(email)),
  app_scope text NOT NULL CHECK(app_scope IN ('boh','foh')),
@@ -35,6 +42,19 @@ AS $$ SELECT public.training_is_leader(CASE WHEN p_name LIKE 'FOH::%' THEN 'foh'
 CREATE OR REPLACE FUNCTION public.training_has_access(p_scope text) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
 AS $$ SELECT public.training_is_leader(p_scope) OR EXISTS(SELECT 1 FROM public.training_app_members WHERE email=public.training_current_email() AND app_scope=p_scope) $$;
+CREATE OR REPLACE FUNCTION public.training_can_manage_leaders(p_scope text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $$ SELECT public.training_is_leader(p_scope) AND EXISTS(SELECT 1 FROM public.training_app_access_admins WHERE email=public.training_current_email() AND app_scope=p_scope) $$;
+CREATE OR REPLACE FUNCTION public.training_grant_leader(p_scope text,p_name text,p_email text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$ BEGIN
+ IF p_scope NOT IN ('boh','foh') OR NOT public.training_can_manage_leaders(p_scope) THEN RAISE EXCEPTION 'Only designated access administrators can grant leader access'; END IF;
+ p_name=trim(p_name);p_email=lower(trim(p_email));
+ IF p_name IS NULL OR p_name='' OR p_email IS NULL OR p_email NOT LIKE '%_@_%._%' THEN RAISE EXCEPTION 'Enter a valid name and email'; END IF;
+ INSERT INTO public.training_app_leaders(email,app_scope,display_name) VALUES(p_email,p_scope,p_name)
+ ON CONFLICT(email,app_scope) DO UPDATE SET display_name=excluded.display_name;
+END $$;
+REVOKE ALL ON FUNCTION public.training_can_manage_leaders(text),public.training_grant_leader(text,text,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.training_can_manage_leaders(text),public.training_grant_leader(text,text,text) TO authenticated;
 CREATE OR REPLACE FUNCTION public.training_my_access()
 RETURNS TABLE(app_scope text,is_leader boolean,display_name text,team_member text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
@@ -58,7 +78,7 @@ DO $$ DECLARE policy record; BEGIN
  END LOOP;
 END $$;
 CREATE POLICY leader_reads_own_role ON public.training_app_leaders FOR SELECT TO authenticated
-USING(email=public.training_current_email());
+USING(email=public.training_current_email() OR public.training_can_manage_leaders(app_scope));
 CREATE POLICY member_links_visible ON public.training_app_members FOR SELECT TO authenticated
 USING(email=public.training_current_email() OR public.training_is_leader(app_scope));
 

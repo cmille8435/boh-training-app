@@ -12,3 +12,5 @@ Then deploy this branch immediately. The SQL locks down anonymous access, so the
 Create/confirm the first approved leader account, sign in, and open Team Members. Link each person's exact existing training name and sign-in email. They can then create/confirm an account and view their own progress. Names and links do not send invitations or create Supabase Auth users. New unlinked accounts receive no saved progress.
 
 Validation: npm install --prefix tests && npm test --prefix tests. The tests run an isolated PostgreSQL-compatible database and DOM simulation: own-progress isolation, scoped leader access, member edit denial, role escalation denial, unauthenticated and unconfirmed-account denial, migration rerun, and both app role views. Live Supabase and device validation remain pending activation.
+
+Only the six designated access administrators can promote a linked team member to a leader using Give Leader Access in Team Members. Promotion is scoped to the current app and does not grant access-administrator permissions. The private setup seeds this administrator list.

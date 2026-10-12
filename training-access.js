@@ -1,6 +1,6 @@
 /* Shared sign-in and access controls. Roles are read from Supabase, never chosen by users. */
 const TrainingAccess=(()=>{
- let config,session=null,leader=false,ownName='',refreshing=null,recovery=false,sessionEpoch=0;
+ let config,session=null,leader=false,accessAdmin=false,ownName='',refreshing=null,recovery=false,sessionEpoch=0;
  const storageKey='haywood-training-session-v1';
  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function remember(value){session=value;try{if(value)localStorage.setItem(storageKey,JSON.stringify(value));else localStorage.removeItem(storageKey);}catch{}}
@@ -32,7 +32,7 @@ const TrainingAccess=(()=>{
   if(!response.ok){if(response.status===401){clear();showLogin('Your session expired. Please sign in again.');}throw new Error(response.status===404?'The sign-in database setup has not been applied yet.':'Unable to save or load. Please try again. ('+response.status+')');}
   if(response.status===204)return null;const text=await response.text();if(epoch!==sessionEpoch||!active())throw new Error('The signed-in account changed. Please try again.');return text?JSON.parse(text):null;
  }
- function clear(){sessionEpoch++;remember(null);leader=false;ownName='';document.body.classList.remove('training-leader','training-signed-in');if(config)config.onSignOut();const bar=document.getElementById('trainingAccount');if(bar)bar.remove();}
+ function clear(){sessionEpoch++;remember(null);leader=false;accessAdmin=false;ownName='';document.body.classList.remove('training-leader','training-signed-in');if(config)config.onSignOut();const bar=document.getElementById('trainingAccount');if(bar)bar.remove();}
  async function signOut(){const old=session;clear();showLogin();if(old)await auth('logout',null,'POST',old.access_token).catch(()=>{});}
  function showLogin(message=''){
   document.querySelector('nav').hidden=true;document.getElementById('homeBtn').hidden=true;
@@ -59,7 +59,7 @@ const TrainingAccess=(()=>{
   const user=await auth('user',null,'GET',await token());session.user=user;remember(session);
   const rows=await request('rpc/training_my_access',{method:'GET'});
   const access=Array.isArray(rows)?rows.find(row=>row.app_scope===config.scope):null;
-  leader=!!access?.is_leader;ownName=access?.team_member||'';
+  leader=!!access?.is_leader;ownName=access?.team_member||'';accessAdmin=leader&&await request('rpc/training_can_manage_leaders?p_scope='+config.scope)===true;
   document.body.classList.toggle('training-leader',leader);document.body.classList.add('training-signed-in');
   document.querySelector('nav').hidden=false;document.getElementById('homeBtn').hidden=false;
   document.querySelector('[data-nav="trainer"]').hidden=!leader;
@@ -75,9 +75,15 @@ const TrainingAccess=(()=>{
    const [links,records]=await Promise.all([request('training_app_members?app_scope=eq.'+config.scope+'&select=email,team_member&order=team_member.asc'),request('boh_training?select=team_member&team_member='+(config.scope==='foh'?'like.FOH::*':'not.like.FOH::*'))]);
    const names=[...new Set([...records.map(row=>row.team_member.replace(/^FOH::/,'')),...links.map(row=>row.team_member)])].sort();
    const box=document.getElementById('memberList');box.innerHTML='';
-   for(const name of names){const link=links.find(row=>row.team_member===name),card=document.createElement('div');card.className='card';card.innerHTML=`<h2>${escape(name)}</h2><p class="small">${escape(link?.email||'Email not linked yet')}</p><div class="edit-actions"><button type="button" class="link-person">Link / Change Email</button><button type="button" class="delete-person">Delete Team Member</button></div>`;
+   for(const name of names){const link=links.find(row=>row.team_member===name),card=document.createElement('div');card.className='card';card.innerHTML=`<h2>${escape(name)}</h2><p class="small">${escape(link?.email||'Email not linked yet')}</p><div class="edit-actions"><button type="button" class="link-person">Link / Change Email</button><button type="button" class="delete-person">Delete Team Member</button>${accessAdmin?'<button type="button" class="promote-person">Give Leader Access</button>':''}</div>`;
     card.querySelector('.link-person').onclick=()=>{form.elements.team_member.value=name;form.elements.email.value=link?.email||'';form.elements.email.focus();};
     card.querySelector('.delete-person').onclick=async()=>{if(!confirm('Delete '+name+' and their '+config.scope.toUpperCase()+' training progress?'))return;try{await request('rpc/training_delete_member',{method:'POST',body:JSON.stringify({p_scope:config.scope,p_name:name})});await config.onDeleted(name);await list();}catch(error){document.getElementById('memberStatus').textContent=error.message;}};
+    if(accessAdmin)card.querySelector('.promote-person').onclick=async()=>{
+     const status=document.getElementById('memberStatus');
+     if(!link){status.textContent='Link this person’s email first, then give leader access.';return;}
+     if(!confirm('Give '+name+' leader access to '+config.scope.toUpperCase()+'? They will be able to edit training and view everyone’s progress in this app.'))return;
+     try{await request('rpc/training_grant_leader',{method:'POST',body:JSON.stringify({p_scope:config.scope,p_name:name,p_email:link.email})});status.textContent='Leader access granted. Ask this person to refresh their app.';}catch(error){status.textContent=error.message;}
+    };
     box.appendChild(card);
    }
   }
@@ -100,5 +106,5 @@ const TrainingAccess=(()=>{
   }catch(error){clear();showLogin(error.message);}
  }
  window.addEventListener('storage',event=>{if(event.key===storageKey&&!event.newValue&&config){clear();showLogin('Signed out.');}});
- return {start,request,active,isLeader:()=>leader,ownName:()=>ownName,requireLeader,requireMember,manageMembers,signOut};
+ return {start,request,active,isLeader:()=>leader,canManageLeaders:()=>accessAdmin,ownName:()=>ownName,requireLeader,requireMember,manageMembers,signOut};
 })();
