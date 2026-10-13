@@ -27,7 +27,7 @@ async function databaseTests(){
  ('00000000-0000-0000-0000-000000000005','fohleader@test.com',now()),
  ('00000000-0000-0000-0000-000000000006','fresh@test.com',now());
  INSERT INTO training_app_leaders VALUES ('leader@test.com','boh','Leader'),('unverified@test.com','boh','Unverified'),('fohleader@test.com','foh','FOH Leader');
- INSERT INTO training_app_access_admins VALUES ('leader@test.com','boh');
+ INSERT INTO training_app_access_admins VALUES ('leader@test.com','boh'); INSERT INTO training_leader_status_viewers VALUES ('leader@test.com','boh'),('fohleader@test.com','foh');
  INSERT INTO training_app_members VALUES ('member@test.com','boh','Member'),('other@test.com','boh','Other');
  INSERT INTO boh_training(team_member,progress) VALUES ('Member','{}'),('Other','{}'),('FOH::Member','{}');
  INSERT INTO training_content(section,title) VALUES ('station','BOH'),('foh-station','FOH');`);
@@ -41,6 +41,8 @@ async function databaseTests(){
  await assert.rejects(()=>as(id(2),"SELECT * FROM training_leader_account_status('boh')"));
  await assert.rejects(()=>as(id(4),"SELECT * FROM training_leader_account_status('boh')"));
  await assert.rejects(()=>as(id(1),"SELECT * FROM training_leader_account_status(NULL)"));
+ await db.exec("RESET ROLE;DELETE FROM training_leader_status_viewers WHERE email='fohleader@test.com';");
+ await assert.rejects(()=>as(id(5),"SELECT * FROM training_leader_account_status('foh')"));
  assert.equal((await as(id(2),"UPDATE boh_training SET progress='{}' RETURNING id")).rows.length,0);
  await assert.rejects(()=>as(id(2),"INSERT INTO training_app_leaders VALUES ('member@test.com','boh','Fake')"));
  await assert.rejects(()=>as(id(2),"SELECT training_link_member('boh','Other','member@test.com')"));
@@ -89,8 +91,8 @@ async function databaseTests(){
  await db.close();console.log('Database: own-progress isolation, scope separation, leader edits/deletes, no self-promotion, anonymous denial, unverified denial, migration rerun PASS');
 }
 async function appTests(){
- for(const scope of ['boh','foh'])for(const mode of ['pending','member','leader']){
-  const leader=mode==='leader',linked=mode!=='pending';
+ for(const scope of ['boh','foh'])for(const mode of ['pending','member','leader','leader-no-status']){
+  const leader=mode.startsWith('leader'),linked=mode!=='pending';
   const html=fs.readFileSync(root+(scope==='boh'?'index.html':'foh/index.html'),'utf8');
   const dom=new JSDOM(html,{url:'https://cmille8435.github.io/boh-training-app/'+(scope==='foh'?'foh/':''),runScripts:'dangerously',pretendToBeVisual:true}),w=dom.window,requests=[];
   w.alert=()=>{};w.confirm=()=>false;
@@ -100,6 +102,7 @@ async function appTests(){
    if(url.includes('/auth/v1/user'))data={id:'user-id',email:'verified@test.com'};
    else if(url.includes('rpc/training_my_access'))data=[{app_scope:scope,is_leader:leader,display_name:linked?'Member':null,team_member:linked?'Member':null}];
    else if(url.includes('rpc/training_can_manage_leaders'))data=leader;
+   else if(url.includes('rpc/training_can_view_leader_status'))data=mode==='leader';
    else if(url.includes('rpc/training_leader_account_status'))data=[{display_name:'Leader A',email:'leader@test.com',account_status:'confirmed'},{display_name:'Leader B',email:'pending@test.com',account_status:'awaiting_confirmation'},{display_name:'Leader C',email:'unsigned@test.com',account_status:'not_signed_up'}];
    else if(url.includes('training_access_requests'))data=leader?[{email:'requester@test.com',requested_name:'Member'}]:[];
    else if(url.includes('/boh_training'))data=[{id:1,team_member:scope==='foh'?'FOH::Member':'Member',progress:{}}];
@@ -125,7 +128,7 @@ async function appTests(){
    assert.ok([...w.document.querySelectorAll('.training-item .checkrow input')].every(input=>input.disabled));
    const edit=w.document.querySelector('.edit-actions');if(edit)assert.equal(w.getComputedStyle(edit).display,'none');
    await assert.rejects(()=>w.eval('TrainingAccess.request("training_content",{method:"POST",body:"{}"})'));
-  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));const roster=w.document.getElementById('leaderAccountList').textContent;for(const label of ['Account confirmed','Email awaiting confirmation','Not signed up'])assert.ok(roster.includes(label));assert.ok(w.document.querySelector('.approve-request'));w.confirm=()=>true;w.document.querySelector('.approve-request').click();await new Promise(r=>setTimeout(r,15));const reviewed=requests.find(r=>r.url.includes('rpc/training_review_access'));assert.deepEqual(JSON.parse(reviewed.options.body),{p_scope:scope,p_email:'requester@test.com',p_approve:true,p_name:'Member'});}
+  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));if(mode==='leader'){const roster=w.document.getElementById('leaderAccountList').textContent;for(const label of ['Account confirmed','Email awaiting confirmation','Not signed up'])assert.ok(roster.includes(label));}else assert.equal(w.document.getElementById('leaderAccountList'),null);assert.ok(w.document.querySelector('.approve-request'));w.confirm=()=>true;w.document.querySelector('.approve-request').click();await new Promise(r=>setTimeout(r,15));const reviewed=requests.find(r=>r.url.includes('rpc/training_review_access'));assert.deepEqual(JSON.parse(reviewed.options.body),{p_scope:scope,p_email:'requester@test.com',p_approve:true,p_name:'Member'});}
   assert.ok(requests.filter(r=>r.url.includes('/rest/v1/')).every(r=>r.options.headers.Authorization==='Bearer verified-session'));
   await w.eval('TrainingAccess.signOut()');assert.equal(w.document.querySelector('nav').hidden,true);assert.equal(w.eval('trainee'), '');assert.equal(w.eval('Object.keys(progress).length'),0);
   dom.window.close();console.log(scope.toUpperCase()+': '+mode+' UI and session isolation PASS');
