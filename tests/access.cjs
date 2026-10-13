@@ -15,7 +15,9 @@ async function databaseTests(){
  await db.exec(fs.readFileSync(root+'supabase/access-migration.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/access-requests.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/leader-account-status.sql','utf8'));
+ await db.exec(fs.readFileSync(root+'supabase/leader-job-titles.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/leader-account-status.sql','utf8'));
+ await db.exec(fs.readFileSync(root+'supabase/leader-job-titles.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/access-requests.sql','utf8'));
  // Migration is rerunnable and retains its original policy backup.
  await db.exec(fs.readFileSync(root+'supabase/access-migration.sql','utf8'));
@@ -105,12 +107,13 @@ async function appTests(){
    else if(url.includes('rpc/training_can_view_leader_status'))data=mode==='leader';
    else if(url.includes('rpc/training_leader_account_status'))data=[{display_name:'Leader A',email:'leader@test.com',account_status:'confirmed'},{display_name:'Leader B',email:'pending@test.com',account_status:'awaiting_confirmation'},{display_name:'Leader C',email:'unsigned@test.com',account_status:'not_signed_up'}];
    else if(url.includes('training_access_requests'))data=leader?[{email:'requester@test.com',requested_name:'Member'}]:[];
+   else if(url.includes('/training_app_leaders'))data=[{email:'verified@test.com',job_title:'BOH Director'},{email:'leader@test.com',job_title:'Executive Director'}];
    else if(url.includes('/boh_training'))data=[{id:1,team_member:scope==='foh'?'FOH::Member':'Member',progress:{}}];
    return {ok:true,status:200,json:async()=>data,text:async()=>JSON.stringify(data)};
   };
   for(const file of ['training-access.js',scope==='boh'?'data-v13.js':'foh/data.js',...(scope==='boh'?['quality-photos.js']:[]),scope==='boh'?'item-photos.js':'foh/item-photos.js',scope==='boh'?'app-v13.js':'foh/app.js']){const script=w.document.createElement('script');script.textContent=fs.readFileSync(root+file,'utf8');w.document.body.appendChild(script);}
   await new Promise(r=>setTimeout(r,25));
-  assert.equal(w.document.body.classList.contains('training-leader'),leader);
+  assert.equal(w.document.body.classList.contains('training-leader'),leader);if(leader)assert.ok(w.document.getElementById('trainingAccount').textContent.includes('BOH Director'));
   const text=w.document.getElementById('app').textContent;
   assert.equal(text.includes('All Progress'),leader);assert.equal(text.includes('Team Members'),leader);
   assert.equal(w.document.querySelector('[data-nav="trainer"]').hidden,!leader);
