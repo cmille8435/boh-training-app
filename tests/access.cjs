@@ -14,6 +14,8 @@ async function databaseTests(){
  CREATE POLICY old_anon_policy ON public.boh_training FOR ALL TO anon USING(true) WITH CHECK(true);`);
  await db.exec(fs.readFileSync(root+'supabase/access-migration.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/access-requests.sql','utf8'));
+ await db.exec(fs.readFileSync(root+'supabase/leader-account-status.sql','utf8'));
+ await db.exec(fs.readFileSync(root+'supabase/leader-account-status.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/access-requests.sql','utf8'));
  // Migration is rerunnable and retains its original policy backup.
  await db.exec(fs.readFileSync(root+'supabase/access-migration.sql','utf8'));
@@ -32,6 +34,13 @@ async function databaseTests(){
  async function as(id,sql){await db.exec('RESET ROLE;');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('SET ROLE authenticated;');return db.query(sql);}
  const id=n=>'00000000-0000-0000-0000-'+String(n).padStart(12,'0');
  assert.deepEqual((await as(id(2),'SELECT team_member FROM boh_training ORDER BY team_member')).rows,[{team_member:'Member'}]);
+ await db.exec("RESET ROLE;INSERT INTO training_app_leaders VALUES ('unsigned@test.com','boh','Unsigned');");
+ assert.deepEqual((await as(id(1),"SELECT account_status FROM training_leader_account_status('boh') ORDER BY account_status")).rows,[{account_status:'awaiting_confirmation'},{account_status:'confirmed'},{account_status:'not_signed_up'}]);
+ assert.equal((await as(id(5),"SELECT * FROM training_leader_account_status('foh')")).rows.length,1);
+ await assert.rejects(()=>as(id(1),"SELECT * FROM training_leader_account_status('foh')"));
+ await assert.rejects(()=>as(id(2),"SELECT * FROM training_leader_account_status('boh')"));
+ await assert.rejects(()=>as(id(4),"SELECT * FROM training_leader_account_status('boh')"));
+ await assert.rejects(()=>as(id(1),"SELECT * FROM training_leader_account_status(NULL)"));
  assert.equal((await as(id(2),"UPDATE boh_training SET progress='{}' RETURNING id")).rows.length,0);
  await assert.rejects(()=>as(id(2),"INSERT INTO training_app_leaders VALUES ('member@test.com','boh','Fake')"));
  await assert.rejects(()=>as(id(2),"SELECT training_link_member('boh','Other','member@test.com')"));
@@ -91,6 +100,7 @@ async function appTests(){
    if(url.includes('/auth/v1/user'))data={id:'user-id',email:'verified@test.com'};
    else if(url.includes('rpc/training_my_access'))data=[{app_scope:scope,is_leader:leader,display_name:linked?'Member':null,team_member:linked?'Member':null}];
    else if(url.includes('rpc/training_can_manage_leaders'))data=leader;
+   else if(url.includes('rpc/training_leader_account_status'))data=[{display_name:'Leader A',email:'leader@test.com',account_status:'confirmed'},{display_name:'Leader B',email:'pending@test.com',account_status:'awaiting_confirmation'},{display_name:'Leader C',email:'unsigned@test.com',account_status:'not_signed_up'}];
    else if(url.includes('training_access_requests'))data=leader?[{email:'requester@test.com',requested_name:'Member'}]:[];
    else if(url.includes('/boh_training'))data=[{id:1,team_member:scope==='foh'?'FOH::Member':'Member',progress:{}}];
    return {ok:true,status:200,json:async()=>data,text:async()=>JSON.stringify(data)};
@@ -115,7 +125,7 @@ async function appTests(){
    assert.ok([...w.document.querySelectorAll('.training-item .checkrow input')].every(input=>input.disabled));
    const edit=w.document.querySelector('.edit-actions');if(edit)assert.equal(w.getComputedStyle(edit).display,'none');
    await assert.rejects(()=>w.eval('TrainingAccess.request("training_content",{method:"POST",body:"{}"})'));
-  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));assert.ok(w.document.querySelector('.approve-request'));w.confirm=()=>true;w.document.querySelector('.approve-request').click();await new Promise(r=>setTimeout(r,15));const reviewed=requests.find(r=>r.url.includes('rpc/training_review_access'));assert.deepEqual(JSON.parse(reviewed.options.body),{p_scope:scope,p_email:'requester@test.com',p_approve:true,p_name:'Member'});}
+  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));const roster=w.document.getElementById('leaderAccountList').textContent;for(const label of ['Account confirmed','Email awaiting confirmation','Not signed up'])assert.ok(roster.includes(label));assert.ok(w.document.querySelector('.approve-request'));w.confirm=()=>true;w.document.querySelector('.approve-request').click();await new Promise(r=>setTimeout(r,15));const reviewed=requests.find(r=>r.url.includes('rpc/training_review_access'));assert.deepEqual(JSON.parse(reviewed.options.body),{p_scope:scope,p_email:'requester@test.com',p_approve:true,p_name:'Member'});}
   assert.ok(requests.filter(r=>r.url.includes('/rest/v1/')).every(r=>r.options.headers.Authorization==='Bearer verified-session'));
   await w.eval('TrainingAccess.signOut()');assert.equal(w.document.querySelector('nav').hidden,true);assert.equal(w.eval('trainee'), '');assert.equal(w.eval('Object.keys(progress).length'),0);
   dom.window.close();console.log(scope.toUpperCase()+': '+mode+' UI and session isolation PASS');
