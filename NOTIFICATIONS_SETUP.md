@@ -1,4 +1,6 @@
-Notifications remain inactive until the project administrator completes this setup. Do not merge the app changes until activation is ready.
+Backend activation completed October 13, 2026: owner configured privately, migration applied, sender deployed, and delivery scheduled each minute. Authorized sender request returned HTTP 200; unauthorized request returned HTTP 401. The owner must still enable phone alerts on her Home Screen app, and actual phone receipt remains to be confirmed.
+
+The following steps document the setup for maintenance or recovery.
 
 1. Apply `supabase/notifications.sql` after the existing access migrations. It does not alter training permissions or copy historical changes into notifications.
 2. Generate VAPID keys with `web-push` and a random dispatch secret. Set Edge Function secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (an administrator mailto address), and `PUSH_DISPATCH_SECRET`. Keep private keys and recipient addresses out of GitHub.
