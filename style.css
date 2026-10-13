@@ -132,3 +132,5 @@ nav button:active{background:#fff0f2;color:var(--red)}
 .quality-category .quality-photos{margin-left:0}
 .quality-photo-navigation{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:13px}
 @media(max-width:360px){.quality-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quality-photos{margin-left:0}.quality-photo-navigation .ghost{padding:10px}}
+/* Account actions wrap on phones, including the private notifications button. */
+.training-account{flex-wrap:wrap}.training-account>div{display:flex;flex-wrap:wrap;gap:6px}.training-account button{min-height:44px}

@@ -1,0 +1,2 @@
+[functions.training-push]
+verify_jwt = false

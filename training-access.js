@@ -32,7 +32,7 @@ const TrainingAccess=(()=>{
   if(!response.ok){if(response.status===401){clear();showLogin('Your session expired. Please sign in again.');}throw new Error(response.status===404?'The sign-in database setup has not been applied yet.':'Unable to save or load. Please try again. ('+response.status+')');}
   if(response.status===204)return null;const text=await response.text();if(epoch!==sessionEpoch||!active())throw new Error('The signed-in account changed. Please try again.');return text?JSON.parse(text):null;
  }
- function clear(){sessionEpoch++;remember(null);leader=false;accessAdmin=false;ownName='';document.body.classList.remove('training-leader','training-signed-in');if(config)config.onSignOut();const bar=document.getElementById('trainingAccount');if(bar)bar.remove();}
+ function clear(){window.TrainingNotifications?.stop();sessionEpoch++;remember(null);leader=false;accessAdmin=false;ownName='';document.body.classList.remove('training-leader','training-signed-in');if(config)config.onSignOut();const bar=document.getElementById('trainingAccount');if(bar)bar.remove();}
  async function signOut(){const old=session;clear();showLogin();if(old)await auth('logout',null,'POST',old.access_token).catch(()=>{});}
  function showLogin(message=''){
   document.querySelector('nav').hidden=true;document.getElementById('homeBtn').hidden=true;
@@ -69,6 +69,7 @@ const TrainingAccess=(()=>{
   let bar=document.getElementById('trainingAccount');if(!bar){bar=document.createElement('div');bar.id='trainingAccount';bar.className='training-account';document.querySelector('header').after(bar);}
   bar.innerHTML=`<span>${escape(access?.display_name||user.email)} · ${escape(accountLabel)}</span><div><button class="ghost request-access" type="button">Request Access</button><button class="ghost sign-out" type="button">Sign Out</button></div>`;bar.querySelector('.sign-out').onclick=signOut;bar.querySelector('.request-access').onclick=()=>showAccessRequest().catch(error=>alert(error.message));
   bar.querySelector('span').dataset.displayName=access?.display_name||user.email;
+  window.TrainingNotifications?.start({request});
   if(!leader&&!ownName){await showAccessRequest();return;}
   await config.onReady({leader,ownName});
  }
