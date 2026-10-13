@@ -79,10 +79,12 @@ const TrainingAccess=(()=>{
   if(form)form.onsubmit=async event=>{event.preventDefault();const status=document.getElementById('accessRequestStatus'),button=form.querySelector('button');button.disabled=true;try{await request('rpc/training_request_access',{method:'POST',body:JSON.stringify({p_scopes:form.elements.scopes.value==='both'?['boh','foh']:[form.elements.scopes.value],p_name:form.elements.full_name.value.trim()})});await showAccessRequest();}catch(error){status.textContent=error.message;button.disabled=false;}};
   document.getElementById('checkApproval').onclick=async()=>{try{await enter();}catch(error){document.getElementById('approvalStatus').textContent=error.message;}};
  }
- function manageMembers(){
+ async function manageMembers(){
   requireLeader();const app=document.getElementById('app');
   app.innerHTML='<h1>Team Members</h1><p class="sub">Approve access requests or manage existing team members.</p><section class="card"><h2>Access Requests</h2><button class="ghost" id="refreshAccessRequests" type="button">Refresh Requests</button><p id="requestReviewStatus" role="status"></p><div id="accessRequests"></div></section><details class="card"><summary>Add or link a team member manually</summary><form id="linkMemberForm"><label class="field">Training name<input name="team_member" required></label><label class="field">Sign-in email<input name="email" type="email" autocomplete="off" required></label><button class="ghost save-item">Save Team Member</button><p id="memberStatus" role="status"></p></form></details><div id="memberList"></div>';
   const form=document.getElementById('linkMemberForm');
+  const canViewLeaderStatus=await request('rpc/training_can_view_leader_status?p_scope='+config.scope);
+  if(canViewLeaderStatus){
   const leaderBox=document.createElement('section');leaderBox.className='card';
   leaderBox.innerHTML='<h2>Leaders</h2><p class="small">Account confirmed means their email is verified. It does not mean they are currently signed in.</p><button class="ghost" id="refreshLeaderAccounts" type="button">Refresh Leader Accounts</button><p id="leaderAccountStatus" role="status"></p><div id="leaderAccountList"></div>';
   document.getElementById('accessRequests').parentElement.after(leaderBox);
@@ -93,6 +95,7 @@ const TrainingAccess=(()=>{
    }catch(error){status.textContent=error.message;}
   }
   document.getElementById('refreshLeaderAccounts').onclick=loadLeaders;loadLeaders();
+  }
   async function list(){
    const [links,records]=await Promise.all([request('training_app_members?app_scope=eq.'+config.scope+'&select=email,team_member&order=team_member.asc'),request('boh_training?select=team_member&team_member='+(config.scope==='foh'?'like.FOH::*':'not.like.FOH::*'))]);
    const names=[...new Set([...records.map(row=>row.team_member.replace(/^FOH::/,'')),...links.map(row=>row.team_member)])].sort();
