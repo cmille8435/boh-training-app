@@ -24,7 +24,7 @@ const TrainingAccess=(()=>{
  }
  function saveSession(value){if(!value.access_token)throw new Error('Sign-in did not return a session.');remember({...value,expires_at:value.expires_at||Date.now()/1000+(value.expires_in||3600)});return value;}
  async function request(path,options={}){
-  if((options.method||'GET').toUpperCase()!=='GET')requireLeader();
+  if((options.method||'GET').toUpperCase()!=='GET'&&!(path==='rpc/training_request_access'&&(options.method||'').toUpperCase()==='POST'))requireLeader();
   const epoch=sessionEpoch;
   const accessToken=await token();
   const response=await fetch(config.url+'/rest/v1/'+path,{...options,headers:{...options.headers,apikey:config.key,Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}});
@@ -46,7 +46,7 @@ const TrainingAccess=(()=>{
    form.querySelectorAll('button').forEach(b=>b.disabled=true);status.textContent='Please wait…';
    try{
     if(mode==='recover'){await auth('recover?redirect_to='+encodeURIComponent(redirect()),{email});status.textContent='If your account exists, check your email for a password reset link.';}
-    else if(mode==='signup'){const data=await auth('signup?redirect_to='+encodeURIComponent(redirect()),{email,password});if(data.access_token){saveSession(data);await enter();}else status.textContent='Check your email to confirm your account, then sign in. A leader must link your email to your training record.';}
+    else if(mode==='signup'){const data=await auth('signup?redirect_to='+encodeURIComponent(redirect()),{email,password});if(data.access_token){saveSession(data);await enter();}else status.textContent='Check your email to confirm your account, then sign in to request training access.';}
     else{saveSession(await auth('token?grant_type=password',{email,password}));await enter();}
    }catch(error){status.textContent=error.message;}
    finally{form.querySelectorAll('button').forEach(b=>b.disabled=false);}
@@ -60,23 +60,50 @@ const TrainingAccess=(()=>{
   const rows=await request('rpc/training_my_access',{method:'GET'});
   const access=Array.isArray(rows)?rows.find(row=>row.app_scope===config.scope):null;
   leader=!!access?.is_leader;ownName=access?.team_member||'';accessAdmin=leader&&await request('rpc/training_can_manage_leaders?p_scope='+config.scope)===true;
+  config.onSignOut();
   document.body.classList.toggle('training-leader',leader);document.body.classList.add('training-signed-in');
   document.querySelector('nav').hidden=false;document.getElementById('homeBtn').hidden=false;
   document.querySelector('[data-nav="trainer"]').hidden=!leader;
   let bar=document.getElementById('trainingAccount');if(!bar){bar=document.createElement('div');bar.id='trainingAccount';bar.className='training-account';document.querySelector('header').after(bar);}
-  bar.innerHTML=`<span>${escape(access?.display_name||user.email)} · ${leader?'Leader':'Team member'}</span><button class="ghost" type="button">Sign Out</button>`;bar.querySelector('button').onclick=signOut;
+  bar.innerHTML=`<span>${escape(access?.display_name||user.email)} · ${leader?'Leader':ownName?'Team member':'Awaiting access'}</span><div><button class="ghost request-access" type="button">Request Access</button><button class="ghost sign-out" type="button">Sign Out</button></div>`;bar.querySelector('.sign-out').onclick=signOut;bar.querySelector('.request-access').onclick=()=>showAccessRequest().catch(error=>alert(error.message));
+  if(!leader&&!ownName){await showAccessRequest();return;}
   await config.onReady({leader,ownName});
+ }
+ async function showAccessRequest(){
+  document.querySelector('nav').hidden=true;document.getElementById('homeBtn').hidden=true;
+  const [access,requests]=await Promise.all([request('rpc/training_my_access'),request('training_access_requests?select=app_scope,status&email=eq.'+encodeURIComponent(session.user.email.toLowerCase()))]);
+  const available=['boh','foh'].filter(scope=>!access.some(row=>row.app_scope===scope&&(row.is_leader||row.team_member)));
+  const app=document.getElementById('app');
+  app.innerHTML=`<h1>Request Training Access</h1><p class="sub">Enter your name and choose your training app. A leader will approve your access and connect your progress.</p><div class="card">${requests.map(row=>`<p>${row.app_scope.toUpperCase()}: <b>${row.status==='pending'?'Waiting for leader approval':row.status==='approved'?'Approved':'Declined — contact a leader or request again'}</b></p>`).join('')}${available.length?`<form id="accessRequestForm"><label class="field">Your full name<input name="full_name" maxlength="120" autocomplete="name" required></label><label class="field">Training access<select name="scopes">${available.map(scope=>`<option value="${scope}" ${scope===config.scope?'selected':''}>${scope.toUpperCase()}</option>`).join('')}${available.length===2?'<option value="both">Both BOH and FOH</option>':''}</select></label><button class="ghost save-item" type="submit">Request Access</button><p id="accessRequestStatus" role="status"></p></form>`:'<p>Your training access is approved.</p>'}<button class="ghost" id="checkApproval" type="button">Check Approval / Open Training</button><p id="approvalStatus" role="status"></p></div>`;
+  const form=document.getElementById('accessRequestForm');
+  if(form)form.onsubmit=async event=>{event.preventDefault();const status=document.getElementById('accessRequestStatus'),button=form.querySelector('button');button.disabled=true;try{await request('rpc/training_request_access',{method:'POST',body:JSON.stringify({p_scopes:form.elements.scopes.value==='both'?['boh','foh']:[form.elements.scopes.value],p_name:form.elements.full_name.value.trim()})});await showAccessRequest();}catch(error){status.textContent=error.message;button.disabled=false;}};
+  document.getElementById('checkApproval').onclick=async()=>{try{await enter();}catch(error){document.getElementById('approvalStatus').textContent=error.message;}};
  }
  function manageMembers(){
   requireLeader();const app=document.getElementById('app');
-  app.innerHTML='<h1>Team Members</h1><p class="sub">Link each person’s email to their existing training name. Only leaders can change these links.</p><div class="card"><form id="linkMemberForm"><label class="field">Training name<input name="team_member" required></label><label class="field">Sign-in email<input name="email" type="email" autocomplete="off" required></label><button class="ghost save-item">Save Team Member</button><p id="memberStatus" role="status"></p></form></div><div id="memberList"></div>';
+  app.innerHTML='<h1>Team Members</h1><p class="sub">Approve access requests or manage existing team members.</p><section class="card"><h2>Access Requests</h2><button class="ghost" id="refreshAccessRequests" type="button">Refresh Requests</button><p id="requestReviewStatus" role="status"></p><div id="accessRequests"></div></section><details class="card"><summary>Add or link a team member manually</summary><form id="linkMemberForm"><label class="field">Training name<input name="team_member" required></label><label class="field">Sign-in email<input name="email" type="email" autocomplete="off" required></label><button class="ghost save-item">Save Team Member</button><p id="memberStatus" role="status"></p></form></details><div id="memberList"></div>';
   const form=document.getElementById('linkMemberForm');
   async function list(){
    const [links,records]=await Promise.all([request('training_app_members?app_scope=eq.'+config.scope+'&select=email,team_member&order=team_member.asc'),request('boh_training?select=team_member&team_member='+(config.scope==='foh'?'like.FOH::*':'not.like.FOH::*'))]);
    const names=[...new Set([...records.map(row=>row.team_member.replace(/^FOH::/,'')),...links.map(row=>row.team_member)])].sort();
+   const pending=await request('training_access_requests?app_scope=eq.'+config.scope+'&status=eq.pending&select=email,requested_name&order=requested_at.asc');
+   const requestBox=document.getElementById('accessRequests');requestBox.innerHTML=pending.length?'':'<p>No requests waiting for approval.</p>';
+   for(const row of pending){
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<h3>${escape(row.requested_name)}</h3><p>${escape(row.email)} · ${config.scope.toUpperCase()}</p><label class="field">Link to training record<select class="record-choice"><option value="">Choose an existing name</option>${names.map(name=>`<option value="${escape(name)}">${escape(name)}</option>`).join('')}<option value="__new__">Create a new training record</option></select></label><label class="field new-record" hidden>New training name<input maxlength="120" value="${escape(row.requested_name)}"></label><div class="edit-actions"><button class="approve-request" type="button">Approve</button><button class="decline-request" type="button">Decline</button></div>`;
+    const choice=card.querySelector('select');if(names.includes(row.requested_name))choice.value=row.requested_name;
+    choice.onchange=()=>{card.querySelector('.new-record').hidden=choice.value!=='__new__';};
+    async function review(approve){const status=document.getElementById('requestReviewStatus');const name=choice.value==='__new__'?card.querySelector('input').value.trim():choice.value;
+     if(approve&&!name){status.textContent='Choose a training record before approving.';return;}
+     if(!confirm(approve?'Approve '+row.requested_name+' ('+row.email+') for '+config.scope.toUpperCase()+' and link to '+name+'?':'Decline '+row.requested_name+'’s '+config.scope.toUpperCase()+' access request?'))return;
+     card.querySelectorAll('button').forEach(button=>button.disabled=true);
+     try{await request('rpc/training_review_access',{method:'POST',body:JSON.stringify({p_scope:config.scope,p_email:row.email,p_approve:approve,p_name:approve?name:null})});status.textContent=approve?'Approved. They can tap Check Approval or refresh their app.':'Request declined.';await list();}catch(error){status.textContent=error.message;card.querySelectorAll('button').forEach(button=>button.disabled=false);}
+    }
+    card.querySelector('.approve-request').onclick=()=>review(true);card.querySelector('.decline-request').onclick=()=>review(false);requestBox.appendChild(card);
+   }
    const box=document.getElementById('memberList');box.innerHTML='';
    for(const name of names){const link=links.find(row=>row.team_member===name),card=document.createElement('div');card.className='card';card.innerHTML=`<h2>${escape(name)}</h2><p class="small">${escape(link?.email||'Email not linked yet')}</p><div class="edit-actions"><button type="button" class="link-person">Link / Change Email</button><button type="button" class="delete-person">Delete Team Member</button>${accessAdmin?'<button type="button" class="promote-person">Give Leader Access</button>':''}</div>`;
-    card.querySelector('.link-person').onclick=()=>{form.elements.team_member.value=name;form.elements.email.value=link?.email||'';form.elements.email.focus();};
+    card.querySelector('.link-person').onclick=()=>{form.closest('details').open=true;form.elements.team_member.value=name;form.elements.email.value=link?.email||'';form.elements.email.focus();};
     card.querySelector('.delete-person').onclick=async()=>{if(!confirm('Delete '+name+' and their '+config.scope.toUpperCase()+' training progress?'))return;try{await request('rpc/training_delete_member',{method:'POST',body:JSON.stringify({p_scope:config.scope,p_name:name})});await config.onDeleted(name);await list();}catch(error){document.getElementById('memberStatus').textContent=error.message;}};
     if(accessAdmin)card.querySelector('.promote-person').onclick=async()=>{
      const status=document.getElementById('memberStatus');
@@ -88,7 +115,8 @@ const TrainingAccess=(()=>{
    }
   }
   form.onsubmit=async event=>{event.preventDefault();const status=document.getElementById('memberStatus');status.textContent='Saving…';try{await request('rpc/training_link_member',{method:'POST',body:JSON.stringify({p_scope:config.scope,p_name:form.elements.team_member.value.trim(),p_email:form.elements.email.value.trim().toLowerCase()})});status.textContent='Saved. This person can now sign in and view their own progress.';form.reset();await list();}catch(error){status.textContent=error.message;}};
-  list().catch(error=>document.getElementById('memberStatus').textContent=error.message);
+  const reload=()=>list().catch(error=>document.getElementById('requestReviewStatus').textContent=error.message);
+  document.getElementById('refreshAccessRequests').onclick=reload;reload();
  }
  function showRecovery(){
   const app=document.getElementById('app');app.innerHTML='<h1>Set New Password</h1><div class="card"><form id="newPassword"><label class="field">New password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><button class="ghost save-item">Save Password</button><p id="passwordStatus" role="status"></p></form></div>';
