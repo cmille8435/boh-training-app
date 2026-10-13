@@ -16,8 +16,10 @@ async function databaseTests(){
  await db.exec(fs.readFileSync(root+'supabase/access-requests.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/leader-account-status.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/leader-job-titles.sql','utf8'));
+ await db.exec(fs.readFileSync(root+'supabase/edit-leader-job-titles.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/leader-account-status.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/leader-job-titles.sql','utf8'));
+ await db.exec(fs.readFileSync(root+'supabase/edit-leader-job-titles.sql','utf8'));
  await db.exec(fs.readFileSync(root+'supabase/access-requests.sql','utf8'));
  // Migration is rerunnable and retains its original policy backup.
  await db.exec(fs.readFileSync(root+'supabase/access-migration.sql','utf8'));
@@ -45,6 +47,18 @@ async function databaseTests(){
  await assert.rejects(()=>as(id(1),"SELECT * FROM training_leader_account_status(NULL)"));
  await db.exec("RESET ROLE;DELETE FROM training_leader_status_viewers WHERE email='fohleader@test.com';");
  await assert.rejects(()=>as(id(5),"SELECT * FROM training_leader_account_status('foh')"));
+ await assert.rejects(()=>as(id(2),"SELECT training_set_leader_title('boh','leader@test.com','Fake',true)"));
+ await assert.rejects(()=>as(id(5),"SELECT training_set_leader_title('foh','fohleader@test.com','Fake',true)"));
+ await assert.rejects(()=>as(id(1),"SELECT training_set_leader_title('boh','leader@test.com',' ',true)"));
+ await as(id(1),"SELECT training_set_leader_title('boh','leader@test.com','Director',false)");
+ assert.equal((await as(id(1),"SELECT job_title FROM training_app_leaders WHERE email='leader@test.com'")).rows[0].job_title,'Director');
+ await db.exec("RESET ROLE;INSERT INTO training_app_leaders(email,app_scope,display_name) VALUES('leader@test.com','foh','Leader');");
+ await assert.rejects(()=>as(id(1),"SELECT training_set_leader_title('boh','leader@test.com','Executive Director',true)"));
+ await db.exec("RESET ROLE;INSERT INTO training_leader_status_viewers VALUES('leader@test.com','foh');");
+ await as(id(1),"SELECT training_set_leader_title('boh','leader@test.com','Executive Director',true)");
+ assert.deepEqual((await as(id(1),"SELECT job_title FROM training_app_leaders WHERE email='leader@test.com' ORDER BY app_scope")).rows,[{job_title:'Executive Director'},{job_title:'Executive Director'}]);
+ await db.exec("RESET ROLE;DELETE FROM training_app_leaders WHERE email='leader@test.com' AND app_scope='foh';DELETE FROM training_leader_status_viewers WHERE email='leader@test.com' AND app_scope='foh';");
+ assert.equal((await as(id(1),"SELECT training_can_manage_leaders('boh') admin")).rows[0].admin,true);
  assert.equal((await as(id(2),"UPDATE boh_training SET progress='{}' RETURNING id")).rows.length,0);
  await assert.rejects(()=>as(id(2),"INSERT INTO training_app_leaders VALUES ('member@test.com','boh','Fake')"));
  await assert.rejects(()=>as(id(2),"SELECT training_link_member('boh','Other','member@test.com')"));
@@ -131,7 +145,7 @@ async function appTests(){
    assert.ok([...w.document.querySelectorAll('.training-item .checkrow input')].every(input=>input.disabled));
    const edit=w.document.querySelector('.edit-actions');if(edit)assert.equal(w.getComputedStyle(edit).display,'none');
    await assert.rejects(()=>w.eval('TrainingAccess.request("training_content",{method:"POST",body:"{}"})'));
-  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));if(mode==='leader'){const roster=w.document.getElementById('leaderAccountList').textContent;for(const label of ['Account confirmed','Email awaiting confirmation','Not signed up'])assert.ok(roster.includes(label));}else assert.equal(w.document.getElementById('leaderAccountList'),null);assert.ok(w.document.querySelector('.approve-request'));w.confirm=()=>true;w.document.querySelector('.approve-request').click();await new Promise(r=>setTimeout(r,15));const reviewed=requests.find(r=>r.url.includes('rpc/training_review_access'));assert.deepEqual(JSON.parse(reviewed.options.body),{p_scope:scope,p_email:'requester@test.com',p_approve:true,p_name:'Member'});}
+  }else{await w.eval('allProgress()');assert.ok(w.document.getElementById('app').textContent.includes('All Progress'));await w.eval('TrainingAccess.manageMembers()');await new Promise(r=>setTimeout(r,15));assert.ok(w.document.querySelector('.promote-person'));if(mode==='leader'){const roster=w.document.getElementById('leaderAccountList').textContent;for(const label of ['Account confirmed','Email awaiting confirmation','Not signed up'])assert.ok(roster.includes(label));w.document.querySelector('.edit-leader-title').click();const titleForm=w.document.querySelector('.leader-title-form');titleForm.elements.job_title.value='Operator';titleForm.dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,15));const titleRequest=requests.find(r=>r.url.includes('rpc/training_set_leader_title'));assert.deepEqual(JSON.parse(titleRequest.options.body),{p_scope:scope,p_email:'leader@test.com',p_title:'Operator',p_both:true});}else assert.equal(w.document.getElementById('leaderAccountList'),null);assert.ok(w.document.querySelector('.approve-request'));w.confirm=()=>true;w.document.querySelector('.approve-request').click();await new Promise(r=>setTimeout(r,15));const reviewed=requests.find(r=>r.url.includes('rpc/training_review_access'));assert.deepEqual(JSON.parse(reviewed.options.body),{p_scope:scope,p_email:'requester@test.com',p_approve:true,p_name:'Member'});}
   assert.ok(requests.filter(r=>r.url.includes('/rest/v1/')).every(r=>r.options.headers.Authorization==='Bearer verified-session'));
   await w.eval('TrainingAccess.signOut()');assert.equal(w.document.querySelector('nav').hidden,true);assert.equal(w.eval('trainee'), '');assert.equal(w.eval('Object.keys(progress).length'),0);
   dom.window.close();console.log(scope.toUpperCase()+': '+mode+' UI and session isolation PASS');

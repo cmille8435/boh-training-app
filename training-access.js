@@ -68,6 +68,7 @@ const TrainingAccess=(()=>{
   document.querySelector('[data-nav="trainer"]').hidden=!leader;
   let bar=document.getElementById('trainingAccount');if(!bar){bar=document.createElement('div');bar.id='trainingAccount';bar.className='training-account';document.querySelector('header').after(bar);}
   bar.innerHTML=`<span>${escape(access?.display_name||user.email)} · ${escape(accountLabel)}</span><div><button class="ghost request-access" type="button">Request Access</button><button class="ghost sign-out" type="button">Sign Out</button></div>`;bar.querySelector('.sign-out').onclick=signOut;bar.querySelector('.request-access').onclick=()=>showAccessRequest().catch(error=>alert(error.message));
+  bar.querySelector('span').dataset.displayName=access?.display_name||user.email;
   if(!leader&&!ownName){await showAccessRequest();return;}
   await config.onReady({leader,ownName});
  }
@@ -93,7 +94,19 @@ const TrainingAccess=(()=>{
   async function loadLeaders(){
    const status=document.getElementById('leaderAccountStatus');status.textContent='Loading…';
    try{const [rows,titles]=await Promise.all([request('rpc/training_leader_account_status?p_scope='+config.scope),request('training_app_leaders?app_scope=eq.'+config.scope+'&select=email,job_title')]);
-    document.getElementById('leaderAccountList').innerHTML=rows.map(row=>`<div class="card"><h3>${escape(row.display_name)}</h3><p>${escape(titles.find(person=>person.email===row.email)?.job_title||'Leader')}</p><p class="small">${escape(row.email)}</p><p><b>${escape({confirmed:'Account confirmed',awaiting_confirmation:'Email awaiting confirmation',not_signed_up:'Not signed up'}[row.account_status]||'Status unavailable')}</b></p></div>`).join('');status.textContent=rows.length?'':'No leaders assigned to this app.';
+    const box=document.getElementById('leaderAccountList');box.innerHTML='';
+    for(const row of rows){const title=titles.find(person=>person.email===row.email)?.job_title||'Leader',card=document.createElement('div');card.className='card';
+     card.innerHTML=`<h3>${escape(row.display_name)}</h3><p>${escape(title)}</p><p class="small">${escape(row.email)}</p><p><b>${escape({confirmed:'Account confirmed',awaiting_confirmation:'Email awaiting confirmation',not_signed_up:'Not signed up'}[row.account_status]||'Status unavailable')}</b></p><button class="ghost edit-leader-title" type="button">Edit Title</button><form class="leader-title-form" hidden><label class="field">Job title<input name="job_title" maxlength="80" value="${escape(title)}" required></label><label class="checkrow"><input name="both_apps" type="checkbox" checked><span>Update both apps if this leader has access to both</span></label><div class="edit-actions"><button class="save-item" type="submit">Save Title</button><button class="cancel-title" type="button">Cancel</button></div><p class="title-status" role="status"></p></form>`;
+     const titleForm=card.querySelector('form'),edit=card.querySelector('.edit-leader-title');
+     edit.onclick=()=>{titleForm.hidden=false;edit.hidden=true;titleForm.elements.job_title.focus();};
+     card.querySelector('.cancel-title').onclick=()=>{titleForm.hidden=true;edit.hidden=false;};
+     titleForm.onsubmit=async event=>{event.preventDefault();const feedback=card.querySelector('.title-status'),save=titleForm.querySelector('[type="submit"]'),newTitle=titleForm.elements.job_title.value.trim();save.disabled=true;feedback.textContent='Saving…';
+      try{await request('rpc/training_set_leader_title',{method:'POST',body:JSON.stringify({p_scope:config.scope,p_email:row.email,p_title:newTitle,p_both:titleForm.elements.both_apps.checked})});
+       if(row.email===session.user.email.toLowerCase()){const account=document.querySelector('#trainingAccount>span');account.textContent=account.dataset.displayName+' · '+newTitle;}
+       await loadLeaders();status.textContent='Title saved.';
+      }catch(error){feedback.textContent=error.message;save.disabled=false;}
+     };box.appendChild(card);
+    }status.textContent=rows.length?'':'No leaders assigned to this app.';
    }catch(error){status.textContent=error.message;}
   }
   document.getElementById('refreshLeaderAccounts').onclick=loadLeaders;loadLeaders();
