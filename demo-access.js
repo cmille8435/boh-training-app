@@ -21,6 +21,10 @@ const TrainingAccess=(()=>{
   throw new Error('Team records are unavailable in this preview.');
  }
  async function start(options){
+  // Keep the Welcome preview consistent across both training apps.
+  if(!WELCOME.sections.some(([title])=>title==='What makes Chick-fil-A Unique?')){
+   WELCOME.sections.push(['What makes Chick-fil-A Unique?',['How Truett Cathy Built a Good Name']]);
+  }
   document.body.classList.add('training-demo');
   document.querySelector('[data-nav="trainer"]').hidden=true;
   document.querySelector('[data-nav="progress"]').textContent='Sample Progress';
