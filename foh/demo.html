@@ -20,6 +20,14 @@
 [hidden]{display:none!important}
 body:not(.training-leader) .edit-actions:not(.auth-actions),body:not(.training-leader) .add-item,body:not(.training-leader) .section-heading>button,body:not(.training-leader) .quality-photo-entry>.ghost,body:not(.training-leader) [data-quality-order]{display:none!important}
 .training-account{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid #e2e6eb;font-size:13px;overflow-wrap:anywhere}.training-account span{min-width:0}.training-account button{flex-shrink:0}
+
+/* Visitors see training text; checklist boxes are for leaders. */
+body:not(.training-leader) .training-item .checkrow>input[type="checkbox"],
+body:not(.training-leader) .fsa-checkrow>input[type="checkbox"],
+body:not(.training-leader) .fsa-help,
+body:not(.training-leader) .fsa-check-actions{display:none!important}
+body:not(.training-leader) .fsa-checkrow{cursor:default;pointer-events:none}
+body:not(.training-leader) .fsa-checkrow input:checked+span{color:inherit}
 </style>
 </head>
 <body>
@@ -27,7 +35,7 @@ body:not(.training-leader) .edit-actions:not(.auth-actions),body:not(.training-l
 <header><div class="brand"><img class="brand-logo" src="../assets/cfa-logo.svg" alt="Chick-fil-A" width="38" height="38"><span class="brand-label">FOH TRAINING</span></div><button id="homeBtn" class="ghost">Home</button></header>
 <main id="app"></main>
 <nav><button data-nav="learn">Training</button><button data-nav="progress">My Progress</button><button data-nav="trainer">Trainer View</button></nav>
-<script src="../demo-access.js?v=2"></script><script src="data.js?v=3"></script><script src="item-photos.js?v=74"></script><script src="app.js?v=access1"></script>
+<script src="../demo-access.js?v=4"></script><script src="data.js?v=3"></script><script src="item-photos.js?v=74"></script><script src="app.js?v=access1"></script>
 <script>
 (function(){
   var opening=document.querySelector('.app-opening');
