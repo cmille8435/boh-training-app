@@ -19,7 +19,7 @@ const TrainingAccess=(()=>{
   const resource=path.split('?')[0];
   if(resource==='training_content'){
    const query=new URL(path,'https://demo.local/').searchParams;
-   if(scope==='foh'||query.has('title'))return [];
+   if(query.has('title'))return [];
    return [{id:'demo-unique-link',section:scope==='foh'?'foh-welcome':'welcome',category:'welcome',item_type:'category',title:META+'item:'+idFor('welcome','welcome','How Truett Cathy Built a Good Name'),description:JSON.stringify({link_url:'https://www.pathway.cfahome.com/doc/d3bb5184-a3c3-4c6e-bc1c-70775786a1fa'}),sort_order:-1}];
   }
   if(resource==='boh_training')return [{team_member:name,progress:sampleProgress()}];
