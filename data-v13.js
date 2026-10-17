@@ -105,7 +105,9 @@ const STATIONS = {
         "Wrap food film around the long sides of the pan and leave the 2 short sides untucked",
         "After 1 hour, place the pan in the walk-in refrigerator",
         "Leave 3 inches of space above and below the pan on the cooling rack",
-        "Filets must cool to 70°F within 2 hours from the time written on the sticker"
+        "Filets must cool to 70°F within 2 hours from the time written on the sticker",
+        "Continue cooling chicken on racks in walk-in refrigerator until it reaches an internal product temperature of 40°F (4°C) or lower within an additional 4 hours.",
+        "To help prevent bacterial growth, chicken must be cooled to an internal temperature of 40°F (4°C) or lower within 6 hours of time written on dated and labeled sticker."
       ]],
       ["Communication + AHA", [
         "Communicate with breader. Follow the PAN system.",
