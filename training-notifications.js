@@ -23,7 +23,7 @@ window.TrainingNotifications=(()=>{
   if(!settings?.owner)return;const version=epoch;
   document.getElementById('trainingNotificationsPanel')?.remove();
   const dialog=document.createElement('dialog');dialog.id='trainingNotificationsPanel';dialog.style.cssText='width:min(540px,calc(100% - 32px));max-height:85vh;border:1px solid #ddd;border-radius:16px;padding:20px;';
-  dialog.innerHTML='<h2>Your Notifications</h2><p>Updates from both BOH and FOH.</p><button class="ghost" id="closeNotifications">Close</button><div class="edit-actions auth-actions"><button id="enableTrainingPush">Enable Phone Alerts</button><button id="disableTrainingPush">Turn Off Phone Alerts</button><button id="markTrainingAlertsRead">Mark These Read</button></div><p id="trainingAlertStatus" role="status"></p><div id="trainingAlertList">Loading…</div>';
+  dialog.innerHTML='<h2>Your Notifications</h2><p>Updates from both BOH and FOH.</p><button class="ghost" id="closeNotifications">Close</button><div class="edit-actions auth-actions"><button id="enableTrainingPush">Enable Phone Alerts</button><button id="disableTrainingPush">Turn Off Phone Alerts</button><button id="markTrainingAlertsRead">Mark These Read</button><button id="clearTrainingAlerts" disabled>Clear Notifications</button></div><p id="trainingAlertStatus" role="status"></p><div id="trainingAlertList">Loading…</div>';
   document.body.appendChild(dialog);dialog.showModal();dialog.querySelector('#closeNotifications').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove(),{once:true});
   const status=dialog.querySelector('#trainingAlertStatus');
   dialog.querySelector('#enableTrainingPush').onclick=async()=>{
@@ -37,10 +37,30 @@ window.TrainingNotifications=(()=>{
     if(version===epoch)status.textContent='Phone alerts are off on this device.';
    }catch(error){if(version===epoch)status.textContent=error.message;}
   };
-  try{const rows=await api.request('training_notifications?select=id,app_scope,message,created_at,read_at&order=id.desc&limit=100');if(version!==epoch)return;
-   dialog.querySelector('#trainingAlertList').innerHTML=rows.length?rows.map(row=>`<article class="card"><b>${esc(row.app_scope.toUpperCase())}${row.read_at?'':' · New'}</b><p>${esc(row.message)}</p><small>${esc(new Date(row.created_at).toLocaleString())}</small></article>`).join(''):'<p>No notifications yet.</p>';
+  try{const rows=await api.request('training_notifications?read_at=is.null&select=id,app_scope,message,created_at,read_at&order=id.desc&limit=100');if(version!==epoch)return;
+   dialog.querySelector('#trainingAlertList').innerHTML=rows.length?rows.map(row=>`<article class="card"><b>${esc(row.app_scope.toUpperCase())}${row.read_at?'':' · New'}</b><p>${esc(row.message)}</p><small>${esc(new Date(row.created_at).toLocaleString())}</small></article>`).join(''):'<p>No notifications.</p>';
+   const clearButton=dialog.querySelector('#clearTrainingAlerts');clearButton.disabled=!rows.length;
+   clearButton.onclick=async()=>{
+    clearButton.disabled=true;status.textContent='Clearing notifications…';
+    try{await clearNotifications(version,rows[0]?.id);if(version!==epoch)return;await refresh();await show();}
+    catch(error){if(version===epoch){status.textContent=error.message;clearButton.disabled=false;}}
+   };
    dialog.querySelector('#markTrainingAlertsRead').onclick=async()=>{try{await api.request('rpc/training_mark_notifications_read',{method:'POST',body:JSON.stringify({p_ids:rows.filter(row=>!row.read_at).map(row=>row.id)})});if(version!==epoch)return;status.textContent='Marked read.';await refresh();await show();}catch(error){if(version===epoch)status.textContent=error.message;}};
   }catch(error){if(version===epoch)dialog.querySelector('#trainingAlertList').textContent=error.message;}
+ }
+ async function clearNotifications(version,latestId){
+  const access=api;
+  if(version!==epoch||!access||!settings?.owner)throw new Error('Please sign in again.');
+  if(latestId==null)return;
+  // Mark only this recipient's existing alerts read. Keep the event records and new alerts.
+  while(version===epoch){
+   const rows=await access.request('training_notifications?read_at=is.null&id=lte.'+encodeURIComponent(latestId)+'&select=id&order=id.asc&limit=100');
+   if(version!==epoch)throw new Error('The signed-in account changed.');
+   if(!rows.length)return;
+   await access.request('rpc/training_mark_notifications_read',{method:'POST',body:JSON.stringify({p_ids:rows.map(row=>row.id)})});
+   if(version!==epoch)throw new Error('The signed-in account changed.');
+  }
+  throw new Error('Please sign in again.');
  }
  async function enablePush(){
   const version=epoch;
