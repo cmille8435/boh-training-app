@@ -295,3 +295,22 @@ STATIONS['rsa-assessment'] = {
     ]
   ]
 };
+
+// Pre-close schedule supplied by the restaurant.
+STATIONS['pre-close'] = {
+ title: 'Pre-Close Timeline',
+ sections: [
+  ['6:00 PM', [
+   'Shut down Secondary and the cold rail',
+   'Shut down ready-to-eat food containers (pickles, bacon, etc.)',
+   'Shut down one fry fryer and one chicken fryer'
+  ]],
+  ['6:30 PM', ['Break down the breading table']],
+  ['7:00 PM', [
+   'Close another machine and take back an extra basket',
+   'Once raw dishes are done, bring back two kanbans for each protein'
+  ]],
+  ['7:30 PM', ['Make the last call for grilled chicken, then shut down the grill']],
+  ['8:00 PM', ['Close down Primary and the remaining machines']]
+ ]
+};
